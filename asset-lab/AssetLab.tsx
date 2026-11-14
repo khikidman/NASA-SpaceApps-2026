@@ -17,6 +17,12 @@ const imageDefaults: ImageSettings = { brightness: 1, contrast: 1, saturation: 1
 const initial: Workspace = { kind: "lunar-recipe", assetId: "lunar-surface", title: "Moon regolith", author: "", note: "", seed: 1, slot: 0, settings: { ...LUNAR_DEFAULT_SETTINGS }, imageSettings: imageDefaults, original: null, parent: null, source: null };
 const time = (value: string) => new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 const sameSource = (a: SourceSnapshot | null, b: SourceSnapshot | null) => !!a && !!b && canonical(a.files) === canonical(b.files);
+function matchesSavedRevision(work: Workspace) {
+    const parent = work.parent;
+    return parent && !work.note.trim() && parent.asset.id === work.assetId && parent.asset.title === work.title.trim() && parent.asset.kind === work.kind && parent.revision.author === work.author.trim()
+      && (work.kind === "lunar-recipe" ? parent.payload.seed === work.seed && parent.payload.slot === work.slot && canonical(parent.payload.recipe?.settings) === canonical(work.settings)
+        : parent.payload.original?.name === work.original?.name && parent.files.find((f) => f.name === "source.png")?.base64 === work.original?.data.split(",")[1] && canonical(parent.payload.settings) === canonical(work.imageSettings));
+}
 async function fetchSource() {
   const response = await fetch("/api/asset-lab/source", { cache: "no-store" });
   const result = await response.json(); if (!response.ok) throw new Error(result.error ?? "Could not read the game source.");
@@ -52,6 +58,13 @@ export function AssetLab() {
           validateImageSettings(work.imageSettings, work.original.width, work.original.height);
           const processed = await processImage(work.original.data, work.imageSettings);
           working = view === "patch" ? await spriteScene(processed, work.imageSettings, base, frame) : processed;
+          if (view === "atlas") {
+            const guides = document.createElement("canvas"); guides.width = processed.width; guides.height = processed.height;
+            const guide = guides.getContext("2d")!; guide.drawImage(processed, 0, 0); guide.strokeStyle = "#80dbc999"; guide.lineWidth = 1;
+            for (let x = 0; x <= guides.width; x += work.imageSettings.frameWidth) { guide.moveTo(x, 0); guide.lineTo(x, guides.height); }
+            for (let y = 0; y <= guides.height; y += work.imageSettings.frameHeight) { guide.moveTo(0, y); guide.lineTo(guides.width, y); }
+            guide.stroke(); working = guides;
+          }
           const raw = await processImage(work.original.data, { ...work.imageSettings, brightness: 1, contrast: 1, saturation: 1 });
           original = view === "patch" ? await spriteScene(raw, work.imageSettings, base, frame) : raw;
         } else {
@@ -97,6 +110,9 @@ export function AssetLab() {
     return pkg;
   }
   async function save(exportFile: boolean) {
+    const parent = work.parent;
+    const unchanged = matchesSavedRevision(work);
+    if (exportFile && unchanged && parent) { download(`${parent.asset.id}--${parent.revision.id}.assetlab.json`, JSON.stringify(parent, null, 2)); setStatus(`Exported saved revision ${parent.revision.id.slice(0, 8)}. No duplicate revision created.`); return; }
     setBusy(true);
     try {
       const pkg = await makeRevision();
@@ -159,9 +175,9 @@ export function AssetLab() {
         <details className={styles.source}><summary>Source &amp; backtrace</summary><p>{work.source?.gitCommit ? `Git ${work.source.gitCommit.slice(0, 10)}` : "No Git commit available"}{work.source?.dirty ? " · working tree snapshot" : ""}</p>{work.source?.files.map((f) => <p key={f.path}><code>{f.path}</code><small>{f.sha256.slice(0, 16)}</small></p>)}<button onClick={() => refreshSource(false)} disabled={busy}>Refresh source</button><button onClick={() => refreshSource(true)} disabled={!currentSource || busy}>Rebase to current source</button></details>
       </aside>
       <section className={styles.stage}>
-        <div className={styles.stageHeading}><div><p className={styles.eyebrow}>{work.kind === "lunar-recipe" ? "PROCEDURAL TEXTURE" : "SPRITE / IMAGE"}</p><h2>{work.title || "Untitled experiment"}</h2></div><span className={styles.localBadge}>{!work.parent || work.note || differences.length ? "Unsaved draft" : "Saved locally"}</span></div>
+        <div className={styles.stageHeading}><div><p className={styles.eyebrow}>{work.kind === "lunar-recipe" ? "PROCEDURAL TEXTURE" : "SPRITE / IMAGE"}</p><h2>{work.title || "Untitled experiment"}</h2></div><span className={styles.localBadge}>{matchesSavedRevision(work) ? "Saved locally" : "Unsaved draft"}</span></div>
         {work.source && currentSource && !sameSource(work.source, currentSource) && <p className={styles.warning}>Different source snapshot. Rebase explicitly before saving a new revision.</p>}
-        <div className={styles.previewToolbar}><div className={styles.tabs}>{(["tile", "patch", "atlas"] as const).map((name) => <button key={name} aria-pressed={view === name} onClick={() => setView(name)}>{work.kind === "sprite" ? name === "patch" ? "In world" : name === "tile" ? "Image" : "Sheet" : name === "patch" ? "In world" : name === "tile" ? "Tile" : "Atlas"}</button>)}</div><label><input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> Compare baseline</label><button onClick={exportPng} disabled={busy || !!previewError}>PNG ↓</button></div>
+        <div className={styles.previewToolbar}><div className={styles.tabs}>{(["tile", "patch", "atlas"] as const).map((name) => <button key={name} aria-pressed={view === name} onClick={() => setView(name)}>{work.kind === "sprite" ? name === "patch" ? "In world" : name === "tile" ? "Image" : "Sheet" : name === "patch" ? "In world" : name === "tile" ? "Tile" : "Atlas"}</button>)}</div><label><input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> Compare baseline</label><button title={work.kind === "lunar-recipe" ? view === "atlas" ? "Download the full atlas PNG" : "Download the selected tile PNG; use Export package for the atlas and recipe" : "Download the refined image without preview guides"} onClick={exportPng} disabled={busy || !!previewError}>PNG ↓</button></div>
         <div className={`${styles.previews} ${compare ? styles.comparing : ""}`}><figure><div className={styles.canvasHost}><canvas ref={canvas} aria-label="Working asset preview" /></div><figcaption>Working {work.kind === "sprite" && view === "patch" ? "· crosshair = anchor" : ""}</figcaption></figure><figure className={!compare ? styles.hidden : ""}><div className={styles.canvasHost}><canvas ref={baseCanvas} aria-label="Baseline asset preview" /></div><figcaption>{work.kind === "sprite" ? "Original image" : "Current game recipe"}</figcaption></figure></div>
         <p className={styles.previewInfo}>{previewError || previewInfo}</p>
         {work.kind === "lunar-recipe" && <div className={styles.variantPicker} aria-label="Atlas variants">{Array.from({ length: 48 }, (_, i) => <button key={i} title={`${i}: ${familyAt(i)}`} aria-label={`Variant ${i}, ${familyAt(i)}`} aria-pressed={work.slot === i} onClick={() => edit({ slot: i })}>{i + 1}</button>)}</div>}

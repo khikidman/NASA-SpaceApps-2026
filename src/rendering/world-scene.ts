@@ -1,10 +1,10 @@
 import { Container, Graphics, Text, Sprite } from "pixi.js";
 import { compareEntityDepth, footprintPolygon, gridToWorld, tileCenter, pointInPolygon, entitySilhouette } from "../world/isometric";
 import type { FacilityKind, GridPosition, Point, WorldEntity, WorldMap, WorldTile, WorldPresentation } from "../world/types";
-import { cellKey, visibleTiles } from "../world/visibility";
+import { cellKey, surfaceDrop, visibleTiles } from "../world/visibility";
 import { entityAt } from "../world/map";
 import type { LunarSurfaceAtlas } from "./lunar-surface";
-import { TILE_DROP, TILE_ENTER_MS, SELECTION_MS, presenceAt, retargetPresence, easeOut, type Presence } from "./motion";
+import { TILE_DROP, TILE_ENTER_MS, SELECTION_MS, presenceAt, retargetPresence, heightAt, retargetHeight, easeOut, type Presence, type HeightMotion } from "./motion";
 
 const flat = (points: readonly Point[]) => points.flatMap((point) => [point.x, point.y]);
 const SAND = [0xc98d65, 0xc58a63, 0xcf946c, 0xc38a66];
@@ -67,7 +67,7 @@ function facility(entity: WorldEntity): { graphic: Graphics; light: Graphics } {
 
 interface TileVisual {
   tile: WorldTile; polygon: readonly Point[]; ground: Container; grid: Graphics;
-  object: Container | null; objectY: number; active: boolean; presence: Presence; offset: number;
+  object: Container | null; objectY: number; active: boolean; presence: Presence; curvature: HeightMotion; offset: number;
   entity?: WorldEntity; silhouette?: readonly Point[];
   node?: { badge: Text; symbol: string; color: number }; light?: Graphics;
 }
@@ -112,6 +112,7 @@ export class WorldScene {
   private readonly orderedEntities: readonly WorldEntity[];
   private pickCells: TileVisual[] = [];
   private selected: GridPosition;
+  private focus: GridPosition;
   private hovered: GridPosition | null = null;
   private pulseStart = -Infinity;
   private gridVisible = true;
@@ -121,6 +122,7 @@ export class WorldScene {
     this.ground.sortableChildren = true; this.objects.sortableChildren = true;
     this.orderedEntities = [...world.entities].sort(compareEntityDepth).reverse();
     this.selected = { ...player };
+    this.focus = { ...player };
     for (const tile of visibleTiles(world, player)) this.addCell(tile, 0, false);
     this.refreshPickOrder();
     this.objects.addChild(this.astronaut.root);
@@ -166,8 +168,10 @@ export class WorldScene {
     grid.visible = this.gridVisible;
     group.addChild(grid); this.ground.addChild(group);
     const entity = entityAt(this.world, tile);
+    const drop = surfaceDrop(this.world, tile, this.focus);
     const visual: TileVisual = { tile, polygon: corners, ground: group, grid, object: null, objectY: 0,
-      active: true, presence: { from: animate ? 0 : 1, to: 1, start: now, duration: animate ? TILE_ENTER_MS : 0 }, offset: 0, entity };
+      active: true, presence: { from: animate ? 0 : 1, to: 1, start: now, duration: animate ? TILE_ENTER_MS : 0 },
+      curvature: { from: drop, to: drop, start: now, duration: 0 }, offset: drop + (animate ? TILE_DROP : 0), entity };
     if (entity) {
       const object = new Container(); const origin = gridToWorld(entity.position);
       object.position.set(origin.x, origin.y);
@@ -197,14 +201,18 @@ export class WorldScene {
       object.addChild(rock); this.objects.addChild(object); visual.object = object; visual.objectY = point.y;
     }
     this.cells.set(cellKey(tile), visual);
+    group.y = visual.offset; group.alpha = animate ? 0 : 1;
+    if (visual.object) visual.object.y = visual.objectY + visual.offset;
     this.presentCell(visual);
     return visual;
   }
   syncVisible(player: GridPosition, now: number, reduced: boolean) {
+    this.focus = { ...player };
     const tiles = visibleTiles(this.world, player); const wanted = new Set(tiles.map(cellKey));
     for (const [key, cell] of this.cells) {
       const active = wanted.has(key);
       if (cell.active !== active) { cell.active = active; cell.presence = retargetPresence(cell.presence, active ? 1 : 0, now); }
+      if (active) cell.curvature = retargetHeight(cell.curvature, surfaceDrop(this.world, cell.tile, player), now);
     }
     for (const tile of tiles) if (!this.cells.has(cellKey(tile))) this.addCell(tile, now, !reduced);
     this.refreshPickOrder();
@@ -222,7 +230,7 @@ export class WorldScene {
     const cell = [...this.cells.values()].find((c) => c.entity?.id === nodeId && c.active);
     if (!cell) return;
     const center = tileCenter(cell.tile);
-    this.celebration.position.set(center.x, center.y - (cell.entity?.height ?? 0) - 20);
+    this.celebration.position.set(center.x, center.y + cell.offset - (cell.entity?.height ?? 0) - 20);
     this.celebrationStart = now; this.celebratedNode = nodeId;
     this.celebrationRing.clear().circle(0, 0, 15).stroke({ color: success ? 0x9bf2d4 : 0xf5acb5, width: 2.5 });
     for (const spark of this.sparks) spark.tint = success ? 0xffffff : 0xffa4ae;
@@ -264,10 +272,14 @@ export class WorldScene {
     this.route.clear();
     const points = [from, target, ...route].filter((p, i, all) => this.cells.get(cellKey({ col: Math.round(p.col), row: Math.round(p.row) }))?.active && (!i || p.col !== all[i - 1].col || p.row !== all[i - 1].row));
     if (points.length < 2) return;
-    const start = tileCenter(points[0]); this.route.moveTo(start.x, start.y);
-    for (const p of points.slice(1)) { const center = tileCenter(p); this.route.lineTo(center.x, center.y); }
+    const atSurface = (p: GridPosition) => {
+      const center = tileCenter(p), cell = this.cells.get(cellKey({ col: Math.round(p.col), row: Math.round(p.row) }));
+      return { x: center.x, y: center.y + (cell?.offset ?? 0) };
+    };
+    const start = atSurface(points[0]); this.route.moveTo(start.x, start.y);
+    for (const p of points.slice(1)) { const center = atSurface(p); this.route.lineTo(center.x, center.y); }
     this.route.stroke({ color: 0xb5fff0, alpha: 0.6, width: 2 });
-    for (const p of points.slice(1)) { const center = tileCenter(p); this.route.ellipse(center.x, center.y, 4, 2).fill({ color: 0xcaffed, alpha: 0.8 }); }
+    for (const p of points.slice(1)) { const center = atSurface(p); this.route.ellipse(center.x, center.y, 4, 2).fill({ color: 0xcaffed, alpha: 0.8 }); }
   }
   setPlayer(position: GridPosition, stride: number, moving: boolean) {
     const feet = tileCenter(position); const a = this.astronaut;
@@ -281,14 +293,18 @@ export class WorldScene {
   update(now: number, reduced: boolean): boolean {
     let active = false;
     for (const [key, cell] of this.cells) {
-      if (reduced) cell.presence = { from: cell.presence.to, to: cell.presence.to, start: now, duration: 0 };
+      if (reduced) {
+        cell.presence = { from: cell.presence.to, to: cell.presence.to, start: now, duration: 0 };
+        cell.curvature = { from: cell.curvature.to, to: cell.curvature.to, start: now, duration: 0 };
+      }
       const value = presenceAt(cell.presence, now);
       if (!cell.active && value <= 0) {
         cell.ground.destroy({ children: true, context: true }); cell.object?.destroy({ children: true, context: true }); this.cells.delete(key); continue;
       }
-      cell.offset = TILE_DROP * (1 - value); cell.ground.y = cell.offset; cell.ground.alpha = value;
+      cell.offset = heightAt(cell.curvature, now) + TILE_DROP * (1 - value); cell.ground.y = cell.offset; cell.ground.alpha = value;
       if (cell.object) { cell.object.y = cell.objectY + cell.offset; cell.object.alpha = value * (cell.entity && this.presentation.usedNodeIds?.includes(cell.entity.id) ? 0.5 : 1); }
       active ||= now < cell.presence.start + cell.presence.duration;
+      active ||= now < cell.curvature.start + cell.curvature.duration;
     }
     const hovered = this.hovered && this.cells.get(cellKey(this.hovered));
     this.hover.visible = !!hovered?.active; this.hover.y = hovered?.offset ?? 0;
@@ -298,7 +314,11 @@ export class WorldScene {
       this.celebrationRing.scale.set(1 + t * 2); this.celebrationRing.alpha = (1 - t) ** 2;
       for (let i = 0; i < this.sparks.length; i++) { const angle = i / this.sparks.length * Math.PI * 2; this.sparks[i].position.set(Math.cos(angle) * t * 46, Math.sin(angle) * t * 28 - t * 24); this.sparks[i].alpha = 1 - t; this.sparks[i].rotation = t * 2; }
       const cell = [...this.cells.values()].find((c) => c.entity?.id === this.celebratedNode);
-      if (cell?.object) cell.object.y -= Math.sin(t * Math.PI) * 7;
+      if (cell?.object) {
+        const center = tileCenter(cell.tile);
+        this.celebration.position.set(center.x, center.y + cell.offset - (cell.entity?.height ?? 0) - 20);
+        cell.object.y -= Math.sin(t * Math.PI) * 7;
+      }
     }
     return this.updateSelection(now, reduced) || active || this.celebration.visible;
   }
@@ -310,7 +330,7 @@ export class WorldScene {
     for (const cell of this.pickCells) if (cell.ground.alpha > 0.2 && pointInPolygon({ x: point.x, y: point.y - cell.offset }, cell.polygon)) return { col: cell.tile.col, row: cell.tile.row };
     return null;
   }
-  shiftTime(delta: number) { for (const cell of this.cells.values()) cell.presence.start += delta; this.pulseStart += delta; this.celebrationStart += delta; }
+  shiftTime(delta: number) { for (const cell of this.cells.values()) { cell.presence.start += delta; cell.curvature.start += delta; } this.pulseStart += delta; this.celebrationStart += delta; }
 }
 export function buildWorldScene(world: WorldMap, player: GridPosition, lunar?: LunarSurfaceAtlas) { return new WorldScene(world, player, lunar); }
 

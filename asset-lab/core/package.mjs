@@ -5,7 +5,7 @@ export const SOURCE_FILES = Object.freeze(["src/assets/lunar-painter.ts", "src/a
 const hashPattern = /^[a-f0-9]{64}$/;
 const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 function object(value, name) { if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Invalid ${name}.`); return value; }
-function string(value, name, max = 200) { if (typeof value !== "string" || !value.trim() || value.length > max) throw new Error(`Invalid ${name}.`); return value; }
+function string(value, name, max = 200) { if (typeof value !== "string" || !value.trim() || value.length > max || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value)) throw new Error(`Invalid ${name}.`); return value; }
 function integer(n, min, max, name) { if (!Number.isInteger(n) || n < min || n > max) throw new Error(`Invalid ${name}.`); }
 function number(n, min, max, name) { if (typeof n !== "number" || !Number.isFinite(n) || n < min || n > max) throw new Error(`Invalid ${name}.`); }
 function uuid(value, name) { if (typeof value !== "string" || !uuidPattern.test(value)) throw new Error(`Invalid ${name}.`); }
@@ -26,6 +26,7 @@ export function decode64(value) {
 }
 export function validateImageSettings(settings, width, height) {
   object(settings, "image settings");
+  if (Object.keys(settings).sort().join() !== ["brightness", "contrast", "saturation", "scale", "anchorX", "anchorY", "frameWidth", "frameHeight"].sort().join()) throw new Error("Unexpected image setting names.");
   for (const key of ["brightness", "contrast"]) number(settings[key], .5, 1.5, key);
   number(settings.saturation, 0, 2, "saturation"); number(settings.scale, .05, 4, "display scale");
   number(settings.anchorX, 0, 1, "anchor X"); number(settings.anchorY, 0, 1, "anchor Y");
@@ -76,7 +77,7 @@ export function validatePackage(value) {
   const expected = asset.kind === "lunar-recipe" ? { "atlas.png": [1536, 576], "tile.png": [192, 96] } : { "source.png": [payload.original.width, payload.original.height], "sprite.png": [payload.original.width, payload.original.height] };
   if (!Array.isArray(pkg.files) || pkg.files.length !== 2 || new Set(pkg.files.map((f) => f.name)).size !== 2) throw new Error("The package must contain its two PNG outputs.");
   for (const f of pkg.files) {
-    if (!expected[f.name] || f.mime !== "image/png" || !hashPattern.test(f.sha256) || typeof f.base64 !== "string" || f.base64.length > 12 * 1024 * 1024) throw new Error("Invalid packaged image.");
+    if (!Object.hasOwn(expected, f.name) || f.mime !== "image/png" || !hashPattern.test(f.sha256) || typeof f.base64 !== "string" || f.base64.length > 12 * 1024 * 1024) throw new Error("Invalid packaged image.");
     if (f.width !== expected[f.name][0] || f.height !== expected[f.name][1]) throw new Error("Packaged image dimensions do not match the recipe.");
   }
   if (!hashPattern.test(pkg.digest)) throw new Error("Missing package fingerprint.");

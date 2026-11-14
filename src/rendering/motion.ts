@@ -5,6 +5,7 @@ export const TILE_ENTER_MS = 360;
 export const TILE_EXIT_MS = 280;
 export const TILE_DROP = 46;
 export const SELECTION_MS = 620;
+export const RIM_SHIFT_MS = 300;
 export const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 export const easeOut = (value: number) => 1 - (1 - clamp01(value)) ** 3;
 
@@ -18,6 +19,18 @@ export function presenceAt(tween: Presence, now: number): number {
 export function retargetPresence(tween: Presence, to: number, now: number): Presence {
   const from = presenceAt(tween, now);
   return { from, to, start: now, duration: Math.abs(to - from) * (to ? TILE_ENTER_MS : TILE_EXIT_MS) };
+}
+
+export interface HeightMotion { from: number; to: number; start: number; duration: number }
+export function heightAt(tween: HeightMotion, now: number): number {
+  const t = tween.duration === 0 ? 1 : clamp01((now - tween.start) / tween.duration);
+  return tween.from + (tween.to - tween.from) * t * t * (3 - 2 * t);
+}
+/** Retarget from the displayed height so a quick reversal cannot snap the rim. */
+export function retargetHeight(tween: HeightMotion, to: number, now: number): HeightMotion {
+  if (tween.to === to) return tween;
+  const from = heightAt(tween, now);
+  return { from, to, start: now, duration: from === to ? 0 : RIM_SHIFT_MS };
 }
 
 export interface WalkMotion {

@@ -45,6 +45,7 @@ export function patchFromSheet(sheet: HTMLCanvasElement, slot: number, zoom = 1)
 }
 export async function spriteScene(image: HTMLCanvasElement, settings: ImageSettings, sheet: HTMLCanvasElement, frame: number) {
   const canvas = patchFromSheet(sheet, 0, 1), ctx = canvas.getContext("2d")!;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   const columns = image.width / settings.frameWidth, count = columns * image.height / settings.frameHeight;
   const index = Math.min(Math.max(0, frame), count - 1), x = 360, y = 95 + 5 * 24;
   const width = settings.frameWidth * settings.scale, height = settings.frameHeight * settings.scale;

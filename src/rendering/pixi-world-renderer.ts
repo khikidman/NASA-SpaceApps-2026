@@ -164,8 +164,8 @@ class PixiWorldRenderer implements WorldRenderer {
           if (!target) this.scene.pulse(now);
         }
       }
-      this.scene.drawRoute(this.visualPlayer, this.snapshot.player, this.snapshot.route ?? []);
       const animating = this.scene.update(now, this.reduced);
+      this.scene.drawRoute(this.visualPlayer, this.snapshot.player, this.snapshot.route ?? []);
       if (this.pointer && !this.drag?.moved) {
         const hovered = this.pick(this.pointer);
         if (hovered?.col !== this.hover?.col || hovered?.row !== this.hover?.row) {

@@ -62,3 +62,7 @@ One action-validated journey save restores movement, collection, task steps, day
 All costs, supply units, event timings, and work-day lengths are fictional game rules. Learning facts have linked NASA background; no live NASA observations are imported. This is not a radiation or life-support simulator. Full perspective 3D, construction, multiplayer, cloud saves, audio, and offline installation are outside this prototype.
 
 Content, reading level, and difficulty need playtesting with children and educators. Add worlds through shared configuration, tasks, and event rules; bump save compatibility versions when changing replay results.
+
+## Teammate asset workspace
+
+The [asset lab](asset-lab/README.md) lives in `asset-lab/` and is available at `/asset-lab`. Run `npm run lab` and open [127.0.0.1:3101/asset-lab](http://127.0.0.1:3101/asset-lab), or use that route on the main preview. It provides shared-generator lunar editing, image/sprite refinement, comparison, local revisions, PNG/package exports, and checked promotion/rollback. Follow [the handoff protocol](asset-lab/PROTOCOL.md) to move an experiment into the game without losing its source or revision history.

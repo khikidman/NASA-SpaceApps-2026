@@ -3,7 +3,7 @@ import { readFile, writeFile, mkdir, rename, stat, access } from "node:fs/promis
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
-import { canonical, decode64, MAX_PACKAGE_BYTES, SOURCE_FILES, verifyPackage } from "../core/package.mjs";
+import { decode64, MAX_PACKAGE_BYTES, SOURCE_FILES, verifyPackage } from "../core/package.mjs";
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 async function atomic(file, data) {
   await mkdir(path.dirname(file), { recursive: true }); const temp = `${file}.${randomUUID()}.tmp`;
@@ -44,8 +44,10 @@ export async function applyPromotion(pkg, root, plan) {
   try { await access(path.join(root, plan.recordPath)); throw new Error("A promotion record with this revision already exists."); }
   catch (error) { if (error.code !== "ENOENT") throw error; }
   const { files, ...manifest } = pkg;
-  const record = { format: "spaceapps.promotion/v1", status: "prepared", preparedAt: new Date().toISOString(), package: { ...manifest, files: files.map(({ base64: _bytes, ...file }) => file) }, destination: plan.target, beforeHash: digest(plan.before), afterHash: plan.afterHash, beforeContent: plan.before, outputs: plan.outputs.map(({ bytes: _bytes, ...file }) => file) };
+  const archivePath = `asset-lab/promotions/bundles/${pkg.asset.id}-${pkg.revision.id}.assetlab.json`;
+  const record = { archivePath, format: "spaceapps.promotion/v1", status: "prepared", preparedAt: new Date().toISOString(), package: { ...manifest, files: files.map((file) => ({ name: file.name, mime: file.mime, width: file.width, height: file.height, sha256: file.sha256 })) }, destination: plan.target, beforeHash: digest(plan.before), afterHash: plan.afterHash, beforeContent: plan.before, outputs: plan.outputs.map((file) => ({ path: file.path, sha256: file.sha256 })) };
   await atomic(path.join(root, plan.recordPath), JSON.stringify(record, null, 2) + "\n");
+  await atomic(path.join(root, archivePath), JSON.stringify(pkg) + "\n");
   // Sprite files have immutable UUID paths. The catalog switches only after both are written.
   for (const output of plan.outputs) { await mkdir(path.dirname(path.join(root, output.path)), { recursive: true }); await writeFile(path.join(root, output.path), output.bytes, { flag: "wx" }); }
   await atomic(path.join(root, plan.target), plan.after);
@@ -66,7 +68,7 @@ async function main() {
   const pkg = await verifyPackage(JSON.parse(await readFile(bundlePath, "utf8")));
   const root = path.resolve(values["project-root"] ?? fileURLToPath(new URL("../../", import.meta.url)));
   const plan = await planPromotion(pkg, root);
-  console.log(`${values.apply ? "APPLY" : "DRY RUN"}: ${pkg.asset.title} (${pkg.asset.id})\nRevision: ${pkg.revision.id}\nPackage SHA-256: ${pkg.digest}\nTarget: ${plan.target}\nBefore: ${digest(plan.before)}\nAfter:  ${plan.afterHash}`);
+  console.log(`${values.apply ? "APPLY" : "DRY RUN"}: ${pkg.asset.title} (${pkg.asset.id})\nRevision: ${pkg.revision.id}\nPackage SHA-256: ${pkg.digest}\nProject: ${root}\nTarget: ${plan.target}\nBefore: ${digest(plan.before)}\nAfter:  ${plan.afterHash}`);
   for (const output of plan.outputs) console.log(`New image: ${output.path}`);
   if (!values.apply) { console.log("No files changed. Review the package and preview, then repeat with --apply to promote."); return; }
   await applyPromotion(pkg, root, plan);
