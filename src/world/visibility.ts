@@ -2,10 +2,15 @@ import { footprintPolygon } from "./isometric";
 import type { Bounds, GridPosition, WorldMap } from "./types";
 
 export const RENDER_RADIUS = 5;
+/** Fully opaque Moon terrain, measured in grid squares. Tune independently of reach.
+ * A future player-state adapter can pass a different radius to surfaceOpacity.
+ * No automatic fatigue adjustment is enabled.
+ */
+export const SOLID_RADIUS = 4;
 // Sample tile centers against the outside of the fifth tile band. This gives
 // each axis a five-tile arc instead of a single tile at the tip of a cross.
 const FOOTPRINT_RADIUS = RENDER_RADIUS + 0.5;
-export const MOON_RIM_DROPS = [0, 8, 22] as const;
+export const MOON_RIM_DROPS = [0, 4, 10, 20, 34] as const;
 export const cellKey = (position: GridPosition) => `${position.col},${position.row}`;
 
 /** A rounded five-tile footprint, shared by rendering, paths, and guidance. */
@@ -17,8 +22,19 @@ export function inRenderRange(position: GridPosition, player: GridPosition): boo
 export function surfaceDrop(world: Pick<WorldMap, "levelId">, position: GridPosition, player: GridPosition): number {
   if (world.levelId !== "moon") return 0;
   const distance = Math.hypot(position.col - player.col, position.row - player.row);
-  return distance > RENDER_RADIUS - 0.5 ? MOON_RIM_DROPS[2]
-    : distance > RENDER_RADIUS - 1.5 ? MOON_RIM_DROPS[1] : MOON_RIM_DROPS[0];
+  const band = Math.max(0, Math.min(MOON_RIM_DROPS.length - 1, Math.floor(distance + 0.5) - 1));
+  return MOON_RIM_DROPS[band];
+}
+
+/** Smooth falloff between the solid center and the translucent outer rim. */
+export function surfaceOpacity(world: Pick<WorldMap, "levelId">, position: GridPosition, player: GridPosition, solidRadius = SOLID_RADIUS): number {
+  if (world.levelId !== "moon") return 1;
+  const distance = Math.hypot(position.col - player.col, position.row - player.row);
+  if (!Number.isFinite(solidRadius) || solidRadius < 0) throw new Error("Solid radius must be a finite, non-negative number.");
+  if (distance <= solidRadius) return 1;
+  const fadeWidth = Math.max(Number.EPSILON, FOOTPRINT_RADIUS - solidRadius);
+  const t = Math.max(0, Math.min(1, (distance - solidRadius) / fadeWidth));
+  return 1 - 0.75 * t * t * (3 - 2 * t);
 }
 
 export function visibleTiles(world: WorldMap, player: GridPosition) {

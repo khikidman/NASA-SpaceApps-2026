@@ -16,15 +16,21 @@ Picking operates in world units and canvas CSS pixels, independently of drawing-
 
 ## Render-distance contract
 
-The radius is exactly five logical squares:
+The render reach is five logical squares, sampled against the outer half-tile boundary to avoid isolated axis tips:
 
 ```text
-(tile.col - player.col)^2 + (tile.row - player.row)^2 <= 25
+(tile.col - player.col)^2 + (tile.row - player.row)^2 < 5.5^2
 ```
 
-This includes the center and boundary: at most 81 active squares, fewer at map edges. Offsets `(5, 0)` and `(3, 4)` are included; `(5, 1)` and `(4, 4)` are excluded. The circle is measured in the square grid; its isometric projection is not a screen-space circle.
+There are at most 97 active squares, fewer at map edges. Offsets `(5, 0)`, `(3, 4)`, and `(5, 2)` are included; `(5, 3)` and `(4, 4)` are excluded. The circle is measured in the square grid; its isometric projection is not a screen-space circle.
 
-`visibleTiles` checks at most 121 candidate cells. `WorldScene` retains ground, grid, rocks, and facility graphics for overlapping cells rather than rebuilding the scene every step. There is no full-map mesh under a mask. Incoming cells rise 46 projected pixels from below while fading in over 360 ms. Departing cells fall and fade over 280 ms, then their geometry is destroyed. The small departing set is the only temporary exception to the 81-active-square drawing budget: it cannot be selected, walked to by clicking, or used outside the active circle. Rapid reversals reuse an in-flight tile at its current height/opacity.
+`visibleTiles` checks at most 121 candidate cells. `WorldScene` retains ground, grid, rocks, and facility graphics for overlapping cells rather than rebuilding the scene every step. There is no full-map mesh under a mask. Incoming cells rise 46 projected pixels from below while fading in over 360 ms. Departing cells fall and fade over 280 ms, then their geometry is destroyed. The small departing set is the only temporary exception to the 97-active-square drawing budget: it cannot be selected, walked to by clicking, or used outside the active circle. Rapid reversals reuse an in-flight tile at its current height/opacity.
+
+Moon terrain uses four descending radial rings at 4, 10, 20, and 34 projected pixels. The fully opaque center is controlled by `SOLID_RADIUS = 4` in `src/world/visibility.ts`; beyond it opacity falls smoothly toward 25%. `surfaceOpacity` accepts an optional radius so a future player-state adapter can supply a different value without changing the math. No tiredness detection or automatic radius changes are enabled. Opacity radius and render reach are independent. Height and opacity retarget from their current displayed values, and their clocks pause with the renderer.
+
+Tile side-face culling treats terrain below a tile top as solid even when its displayed opacity is reduced. The two camera-facing walls compare against the current heights of their row+1 and col+1 neighbors. Equal or higher neighbors remove the shared wall entirely; lower neighbors expose only the step, capped at the 14-pixel visual thickness. Missing neighbors retain the outside rim. Neighbor transparency and viewport culling do not expose internal walls. All animated heights are sampled before clipping, including fading-out neighbors, so sides reveal smoothly during entry, departure, and reversal. Side graphics and their dust accents are rebuilt only when exposed depths change. `data-exposed-sides` reports the emitted face count.
+
+Before each render, Pixi culls cell ground and object groups against the full CSS-pixel viewport with a 24-pixel overscan margin. Cached local culling bounds include tile sides, rocks, rooftops, antennae, and badges. Transforms are updated after camera changes and animation, so culling follows pan, zoom, resize, and tile height. A visible rooftop is kept even if its ground is off-screen. Culled groups are excluded from picking but retained for reuse, while outgoing cells still finish their transitions and are disposed. Canvas diagnostics report `data-culled-tiles` and `data-culled-objects`. This is viewport culling; it does not claim per-pixel building occlusion.
 
 Ground and objects use separate sorted layers, so buildings, walking feet, and tile extrusion retain correct depth. Stable picking polygons and pick order are reused; incoming picking follows the animated height. Remote map metadata stays in memory, but remote geometry is never created. Zoom and pan cannot reveal undiscovered distant terrain.
 
@@ -66,7 +72,7 @@ The radius bounds current scene complexity, but it is not a target-device benchm
 
 ## Verification
 
-Unit tests cover exact radius boundaries, the 81-square maximum, every map edge, hidden picking, one-square home occupancy, movement/collision, routes, interaction proximity, spatial save validation helpers and unified journey replay, camera transforms, and home-marker bearings. Additional tests cover motion continuity, retiming, tile identity retention, reversal, disposal, reduced motion, and shortest node approaches. Browser checks cover fractional movement, steady camera tracking, bounded departing geometry, idle frame counts, click retargeting, held keys, and actual drawing, scene contents while moving away/returning, home-marker transitions, keyboard/click/touch navigation, persistence, zoom, resize, graphics recovery, and mission play.
+Unit tests cover exact radius boundaries, the 97-square maximum, every map edge, hidden picking, one-square home occupancy, movement/collision, routes, interaction proximity, spatial save validation helpers and unified journey replay, camera transforms, and home-marker bearings. Additional tests cover motion continuity, retiming, tile identity retention, reversal, disposal, reduced motion, and shortest node approaches. Browser checks cover fractional movement, steady camera tracking, bounded departing geometry, idle frame counts, click retargeting, held keys, and actual drawing, scene contents while moving away/returning, home-marker transitions, keyboard/click/touch navigation, persistence, zoom, resize, graphics recovery, and mission play.
 
 ## Full-screen game shell
 

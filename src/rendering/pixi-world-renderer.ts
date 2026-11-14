@@ -7,7 +7,7 @@ import type { WorldRenderer, WorldRendererCallbacks } from "./types";
 import { buildHomeMarker, buildWorldScene } from "./world-scene";
 import { homeGuidance } from "./home-guide";
 import { LunarSurfaceAtlas } from "./lunar-surface";
-import { beginWalk, walkAt, retimeWalk, STEP_MS, type WalkMotion } from "./motion";
+import { beginWalk, walkAt, retimeWalk, presenceAt, STEP_MS, type WalkMotion } from "./motion";
 
 class PixiWorldRenderer implements WorldRenderer {
   private scene;
@@ -111,6 +111,7 @@ class PixiWorldRenderer implements WorldRenderer {
     this.camera = constrainCamera(this.camera, this.bounds, this.width, this.height);
     this.scene.root.position.set(this.camera.x, this.camera.y);
     this.scene.root.scale.set(this.camera.zoom);
+    this.scene.cull(this.width, this.height);
     const area = this.viewArea();
     const guide = homeGuidance(this.snapshot.player, this.world.home,
       { ...this.camera, x: this.camera.x - area.left, y: this.camera.y - area.top }, area.width, area.height);
@@ -166,13 +167,13 @@ class PixiWorldRenderer implements WorldRenderer {
       }
       const animating = this.scene.update(now, this.reduced);
       this.scene.drawRoute(this.visualPlayer, this.snapshot.player, this.snapshot.route ?? []);
+      this.applyCamera();
       if (this.pointer && !this.drag?.moved) {
         const hovered = this.pick(this.pointer);
         if (hovered?.col !== this.hover?.col || hovered?.row !== this.hover?.row) {
           this.hover = hovered; this.scene.setHover(hovered);
         }
       }
-      this.applyCamera();
       this.reportAnimation(now);
       if (!this.destroyed && !this.contextLost) { this.app.render(); this.renderedFrames++; }
       this.frame = 0;
@@ -197,7 +198,10 @@ class PixiWorldRenderer implements WorldRenderer {
     canvas.dataset.moving = String(!!this.motion || !!this.queuedMotion || !!this.timedStep);
     canvas.dataset.outgoingTiles = String(this.scene.outgoingCount);
     canvas.dataset.retainedTiles = String(this.scene.cells.size);
-    canvas.dataset.enteringTiles = String([...this.scene.cells.values()].filter((c) => c.active && c.ground.alpha < 1).length);
+    canvas.dataset.culledTiles = String(this.scene.culledGroundCount);
+    canvas.dataset.culledObjects = String(this.scene.culledObjectCount);
+    canvas.dataset.exposedSides = String(this.scene.exposedSideCount);
+    canvas.dataset.enteringTiles = String([...this.scene.cells.values()].filter((c) => c.active && presenceAt(c.presence, now) < 1).length);
     canvas.dataset.renderedFrames = String(this.renderedFrames);
     canvas.dataset.camera = `${this.camera.x.toFixed(3)},${this.camera.y.toFixed(3)},${this.camera.zoom.toFixed(4)}`;
   }

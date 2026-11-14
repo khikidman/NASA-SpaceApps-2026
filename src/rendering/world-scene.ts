@@ -1,13 +1,21 @@
-import { Container, Graphics, Text, Sprite } from "pixi.js";
+import { Container, Culler, Graphics, Rectangle, Text, Sprite } from "pixi.js";
 import { compareEntityDepth, footprintPolygon, gridToWorld, tileCenter, pointInPolygon, entitySilhouette } from "../world/isometric";
 import type { FacilityKind, GridPosition, Point, WorldEntity, WorldMap, WorldTile, WorldPresentation } from "../world/types";
-import { cellKey, surfaceDrop, visibleTiles } from "../world/visibility";
+import { cellKey, surfaceDrop, surfaceOpacity, visibleTiles } from "../world/visibility";
 import { entityAt } from "../world/map";
 import type { LunarSurfaceAtlas } from "./lunar-surface";
 import { TILE_DROP, TILE_ENTER_MS, SELECTION_MS, presenceAt, retargetPresence, heightAt, retargetHeight, easeOut, type Presence, type HeightMotion } from "./motion";
+import { exposedSideDepth, TILE_THICKNESS } from "./tile-faces";
 
 const flat = (points: readonly Point[]) => points.flatMap((point) => [point.x, point.y]);
 const SAND = [0xc98d65, 0xc58a63, 0xcf946c, 0xc38a66];
+const CULL_PADDING = 24;
+function cullingArea(points: readonly Point[], top = 0, bottom = 0) {
+  const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+  const left = Math.min(...xs) - 2, right = Math.max(...xs) + 2;
+  const upper = Math.min(...ys) - top - 2, lower = Math.max(...ys) + bottom + 2;
+  return new Rectangle(left, upper, right - left, lower - upper);
+}
 
 function prism(graphic: Graphics, width: number, depth: number, height: number, colors: readonly number[]) {
   const base = footprintPolygon({ col: 0, row: 0 }, width, depth);
@@ -67,7 +75,8 @@ function facility(entity: WorldEntity): { graphic: Graphics; light: Graphics } {
 
 interface TileVisual {
   tile: WorldTile; polygon: readonly Point[]; ground: Container; grid: Graphics;
-  object: Container | null; objectY: number; active: boolean; presence: Presence; curvature: HeightMotion; offset: number;
+  sides: Graphics; sideDepths: { row: number; col: number };
+  object: Container | null; objectY: number; active: boolean; presence: Presence; curvature: HeightMotion; fade: HeightMotion; offset: number;
   entity?: WorldEntity; silhouette?: readonly Point[];
   node?: { badge: Text; symbol: string; color: number }; light?: Graphics;
 }
@@ -110,6 +119,7 @@ export class WorldScene {
   private celebratedNode: string | null = null;
   readonly cells = new Map<string, TileVisual>();
   private readonly orderedEntities: readonly WorldEntity[];
+  private readonly cullView = new Rectangle();
   private pickCells: TileVisual[] = [];
   private selected: GridPosition;
   private focus: GridPosition;
@@ -124,8 +134,11 @@ export class WorldScene {
     this.selected = { ...player };
     this.focus = { ...player };
     for (const tile of visibleTiles(world, player)) this.addCell(tile, 0, false);
+    this.refreshSideFaces();
     this.refreshPickOrder();
     this.objects.addChild(this.astronaut.root);
+    this.astronaut.root.cullable = true; this.astronaut.root.cullableChildren = false;
+    this.astronaut.root.cullArea = new Rectangle(-19, -59, 38, 70);
     this.celebration.addChild(this.celebrationRing);
     for (let i = 0; i < 10; i++) { const spark = new Graphics().poly([0,-4,1,-1,4,0,1,1,0,4,-1,1,-4,0,-1,-1]).fill(i % 2 ? 0xb6f6da : 0xe7c7ff); this.sparks.push(spark); this.celebration.addChild(spark); }
     this.celebration.visible = false;
@@ -135,31 +148,36 @@ export class WorldScene {
   get tileKeys() { return [...this.cells].filter(([, c]) => c.active).map(([key]) => key); }
   get entityIds() { return this.orderedEntities.filter((e) => this.cells.get(cellKey(e.position))?.active).map((e) => e.id); }
   get outgoingCount() { let count = 0; for (const c of this.cells.values()) if (!c.active) count++; return count; }
+  get culledGroundCount() { let count = 0; for (const c of this.cells.values()) if (c.ground.culled) count++; return count; }
+  get culledObjectCount() { let count = 0; for (const c of this.cells.values()) if (c.object?.culled) count++; return count; }
+  get exposedSideCount() { let count = 0; for (const c of this.cells.values()) { if (c.sideDepths.row > 0) count++; if (c.sideDepths.col > 0) count++; } return count; }
+  /** Cull in CSS screen pixels, after camera and animation transforms are current.
+   * Cached local areas include side faces, rooftops, antennae, and node badges.
+   * Keep retained cells alive so off-screen transitions and reversals still settle.
+   */
+  cull(width: number, height: number) {
+    this.cullView.x = this.cullView.y = -CULL_PADDING;
+    this.cullView.width = width + CULL_PADDING * 2; this.cullView.height = height + CULL_PADDING * 2;
+    Culler.shared.cull(this.root, this.cullView, false);
+  }
   private addCell(tile: WorldTile, now: number, animate: boolean) {
     const moon = this.world.levelId === "moon";
     const sand = moon ? [0x9c9e95, 0xa6a79e, 0x969b90, 0xaaa99e] : SAND;
     const corners = footprintPolygon(tile);
     const group = new Container(); group.zIndex = tile.col + tile.row;
+    group.cullable = true; group.cullableChildren = false;
+    group.cullArea = cullingArea(corners, 0, TILE_THICKNESS);
+    const sides = new Graphics();
     const ground = new Graphics();
-    // Full side faces reveal naturally as neighboring tiles drop away.
-    const [a, b, c] = [corners[3], corners[2], corners[1]];
-    ground.poly(flat([a, b, { x: b.x, y: b.y + 14 }, { x: a.x, y: a.y + 14 }])).fill(moon ? 0x595b54 : 0x946548);
-    ground.poly(flat([b, c, { x: c.x, y: c.y + 14 }, { x: b.x, y: b.y + 14 }])).fill(moon ? 0x77796f : 0xaa7451);
     const color = tile.terrain === "path" ? (moon ? 0xa6a79a : 0xdfb78b) : tile.terrain === "pad" ? (moon ? 0xa2a498 : 0xbba58b)
       : tile.terrain === "rock" ? (moon ? 0x8f9587 : 0xb47b58) : sand[tile.variant];
     ground.poly(flat(corners)).fill(color);
-    group.addChild(ground);
+    group.addChild(sides, ground);
     if (this.lunar) {
       const surface = new Sprite(this.lunar.texture(tile));
       const origin = gridToWorld(tile);
       surface.position.set(origin.x - 48, origin.y); surface.scale.set(0.5);
       group.addChild(surface);
-      // A dusty lip and fragments in the exposed regolith sides.
-      ground.moveTo(a.x, a.y + 3).lineTo(b.x, b.y + 3).lineTo(c.x, c.y + 3).stroke({ color: 0xa5aa98, alpha: 0.25, width: 1 });
-      for (let i = 1; i < 7; i++) {
-        const t = i / 7, depth = 5 + (i * 7 + tile.variant * 3) % 7;
-        ground.ellipse(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t + depth, 1.3, .6).fill({ color: i % 2 ? 0xb5b7a6 : 0x333f32, alpha: .35 });
-      }
     } else if (tile.terrain === "sand" && tile.variant === 0) {
       const center = tileCenter(tile);
       ground.ellipse(center.x + 9, center.y + 4, 6, 2).fill({ color: moon ? 0x596b7a : 0xa66949, alpha: 0.35 });
@@ -169,9 +187,11 @@ export class WorldScene {
     group.addChild(grid); this.ground.addChild(group);
     const entity = entityAt(this.world, tile);
     const drop = surfaceDrop(this.world, tile, this.focus);
-    const visual: TileVisual = { tile, polygon: corners, ground: group, grid, object: null, objectY: 0,
+    const opacity = surfaceOpacity(this.world, tile, this.focus);
+    const visual: TileVisual = { tile, polygon: corners, ground: group, grid, sides, sideDepths: { row: NaN, col: NaN }, object: null, objectY: 0,
       active: true, presence: { from: animate ? 0 : 1, to: 1, start: now, duration: animate ? TILE_ENTER_MS : 0 },
-      curvature: { from: drop, to: drop, start: now, duration: 0 }, offset: drop + (animate ? TILE_DROP : 0), entity };
+      curvature: { from: drop, to: drop, start: now, duration: 0 },
+      fade: { from: opacity, to: opacity, start: now, duration: 0 }, offset: drop + (animate ? TILE_DROP : 0), entity };
     if (entity) {
       const object = new Container(); const origin = gridToWorld(entity.position);
       object.position.set(origin.x, origin.y);
@@ -201,10 +221,42 @@ export class WorldScene {
       object.addChild(rock); this.objects.addChild(object); visual.object = object; visual.objectY = point.y;
     }
     this.cells.set(cellKey(tile), visual);
-    group.y = visual.offset; group.alpha = animate ? 0 : 1;
+    if (visual.object) {
+      visual.object.cullable = true; visual.object.cullableChildren = false;
+      visual.object.cullArea = entity
+        ? cullingArea(footprintPolygon({ col: 0, row: 0 }, entity.footprint.width, entity.footprint.height), entity.height + 37)
+        : new Rectangle(-34, -24, 68, 48);
+    }
+    group.y = visual.offset; group.alpha = animate ? 0 : opacity;
     if (visual.object) visual.object.y = visual.objectY + visual.offset;
     this.presentCell(visual);
     return visual;
+  }
+  private refreshSideFaces() {
+    const moon = this.world.levelId === "moon";
+    for (const cell of this.cells.values()) {
+      // Use actual displayed heights, including entering/departing neighbors.
+      // Viewport culling and partial opacity do not make terrain stop occluding.
+      const rowNeighbor = this.cells.get(`${cell.tile.col},${cell.tile.row + 1}`);
+      const colNeighbor = this.cells.get(`${cell.tile.col + 1},${cell.tile.row}`);
+      const row = exposedSideDepth(cell.offset, rowNeighbor && rowNeighbor.ground.alpha > 0 ? rowNeighbor.offset : undefined);
+      const col = exposedSideDepth(cell.offset, colNeighbor && colNeighbor.ground.alpha > 0 ? colNeighbor.offset : undefined);
+      if (row === cell.sideDepths.row && col === cell.sideDepths.col) continue;
+      cell.sideDepths = { row, col };
+      cell.sides.clear(); cell.sides.visible = row > 0 || col > 0;
+      const [a, b, c] = [cell.polygon[3], cell.polygon[2], cell.polygon[1]];
+      for (const [from, to, depth, color] of [[a, b, row, moon ? 0x595b54 : 0x946548], [b, c, col, moon ? 0x77796f : 0xaa7451]] as const) {
+        if (depth <= 0) continue;
+        cell.sides.poly(flat([from, to, { x: to.x, y: to.y + depth }, { x: from.x, y: from.y + depth }])).fill(color);
+        if (this.lunar && depth > 3.5) cell.sides.moveTo(from.x, from.y + 3).lineTo(to.x, to.y + 3).stroke({ color: 0xa5aa98, alpha: 0.25, width: 1 });
+      }
+      if (this.lunar) for (let i = 1; i < 7; i++) {
+        const t = i / 7, depth = 5 + (i * 7 + cell.tile.variant * 3) % 7;
+        if (depth + .6 > row) continue;
+        cell.sides.ellipse(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t + depth, 1.3, .6)
+          .fill({ color: i % 2 ? 0xb5b7a6 : 0x333f32, alpha: .35 });
+      }
+    }
   }
   syncVisible(player: GridPosition, now: number, reduced: boolean) {
     this.focus = { ...player };
@@ -213,6 +265,7 @@ export class WorldScene {
       const active = wanted.has(key);
       if (cell.active !== active) { cell.active = active; cell.presence = retargetPresence(cell.presence, active ? 1 : 0, now); }
       if (active) cell.curvature = retargetHeight(cell.curvature, surfaceDrop(this.world, cell.tile, player), now);
+      if (active) cell.fade = retargetHeight(cell.fade, surfaceOpacity(this.world, cell.tile, player), now);
     }
     for (const tile of tiles) if (!this.cells.has(cellKey(tile))) this.addCell(tile, now, !reduced);
     this.refreshPickOrder();
@@ -223,7 +276,7 @@ export class WorldScene {
     const used = !!cell.entity && this.presentation.usedNodeIds?.includes(cell.entity.id);
     if (cell.node) { cell.node.badge.text = used ? "✓" : cell.node.symbol; cell.node.badge.style.fill = cell.entity?.id === this.presentation.objectiveNodeId ? 0xffffff : cell.node.color; cell.node.badge.scale.set(cell.entity?.id === this.presentation.objectiveNodeId ? 1.15 : 1); }
     if (cell.light) cell.light.tint = this.presentation.missionEnded || this.presentation.lowPower || (cell.entity?.kind === "oxygen" && this.presentation.lowOxygen) ? 0xf2af54 : 0x91d4bc;
-    if (cell.object) cell.object.alpha = presenceAt(cell.presence, performance.now()) * (used ? 0.5 : 1);
+    if (cell.object) cell.object.alpha = cell.ground.alpha * (used ? 0.5 : 1);
   }
   setPresentation(presentation: WorldPresentation) { this.presentation = presentation; for (const cell of this.cells.values()) this.presentCell(cell); }
   celebrate(nodeId: string, success: boolean, now: number) {
@@ -240,7 +293,7 @@ export class WorldScene {
     this.hovered = position;
     drawTileHighlight(this.hover, this.world, position, 0xffffff);
     const cell = position && this.cells.get(cellKey(position));
-    this.hover.visible = !!cell?.active; this.hover.y = cell?.offset ?? 0;
+    this.hover.visible = !!cell?.active; this.hover.y = cell?.offset ?? 0; this.hover.alpha = cell?.ground.alpha ?? 0;
   }
   setSelection(position: GridPosition, now: number, animate = true) {
     this.selected = { ...position }; this.pulseStart = animate ? now : -Infinity;
@@ -263,9 +316,9 @@ export class WorldScene {
     this.ripple.position.copyFrom(this.selection.position);
     const t = Math.max(0, Math.min(1, (now - this.pulseStart) / SELECTION_MS));
     const pop = reduced || t >= 1 ? 1 : 0.84 + 0.16 * easeOut(Math.min(1, t * 3)) + Math.sin(Math.min(1, t * 2) * Math.PI) * 0.08;
-    this.selection.scale.set(pop); this.selection.alpha = presenceAt(cell.presence, now);
+    this.selection.scale.set(pop); this.selection.alpha = cell.ground.alpha;
     this.ripple.visible = !reduced && t < 1;
-    this.ripple.scale.set(0.9 + t * 0.8); this.ripple.alpha = (1 - t) ** 2;
+    this.ripple.scale.set(0.9 + t * 0.8); this.ripple.alpha = (1 - t) ** 2 * cell.ground.alpha;
     return !reduced && t < 1;
   }
   drawRoute(from: GridPosition, target: GridPosition, route: readonly GridPosition[]) {
@@ -274,12 +327,16 @@ export class WorldScene {
     if (points.length < 2) return;
     const atSurface = (p: GridPosition) => {
       const center = tileCenter(p), cell = this.cells.get(cellKey({ col: Math.round(p.col), row: Math.round(p.row) }));
-      return { x: center.x, y: center.y + (cell?.offset ?? 0) };
+      return { x: center.x, y: center.y + (cell?.offset ?? 0), alpha: cell?.ground.alpha ?? 0 };
     };
-    const start = atSurface(points[0]); this.route.moveTo(start.x, start.y);
-    for (const p of points.slice(1)) { const center = atSurface(p); this.route.lineTo(center.x, center.y); }
-    this.route.stroke({ color: 0xb5fff0, alpha: 0.6, width: 2 });
-    for (const p of points.slice(1)) { const center = atSurface(p); this.route.ellipse(center.x, center.y, 4, 2).fill({ color: 0xcaffed, alpha: 0.8 }); }
+    let previous = atSurface(points[0]);
+    for (const p of points.slice(1)) {
+      const center = atSurface(p);
+      this.route.moveTo(previous.x, previous.y).lineTo(center.x, center.y)
+        .stroke({ color: 0xb5fff0, alpha: 0.6 * (previous.alpha + center.alpha) / 2, width: 2 });
+      this.route.ellipse(center.x, center.y, 4, 2).fill({ color: 0xcaffed, alpha: 0.8 * center.alpha });
+      previous = center;
+    }
   }
   setPlayer(position: GridPosition, stride: number, moving: boolean) {
     const feet = tileCenter(position); const a = this.astronaut;
@@ -296,18 +353,23 @@ export class WorldScene {
       if (reduced) {
         cell.presence = { from: cell.presence.to, to: cell.presence.to, start: now, duration: 0 };
         cell.curvature = { from: cell.curvature.to, to: cell.curvature.to, start: now, duration: 0 };
+        cell.fade = { from: cell.fade.to, to: cell.fade.to, start: now, duration: 0 };
       }
       const value = presenceAt(cell.presence, now);
       if (!cell.active && value <= 0) {
         cell.ground.destroy({ children: true, context: true }); cell.object?.destroy({ children: true, context: true }); this.cells.delete(key); continue;
       }
-      cell.offset = heightAt(cell.curvature, now) + TILE_DROP * (1 - value); cell.ground.y = cell.offset; cell.ground.alpha = value;
-      if (cell.object) { cell.object.y = cell.objectY + cell.offset; cell.object.alpha = value * (cell.entity && this.presentation.usedNodeIds?.includes(cell.entity.id) ? 0.5 : 1); }
+      cell.offset = heightAt(cell.curvature, now) + TILE_DROP * (1 - value); cell.ground.y = cell.offset;
+      cell.ground.alpha = value * heightAt(cell.fade, now);
+      if (cell.object) { cell.object.y = cell.objectY + cell.offset; cell.object.alpha = cell.ground.alpha * (cell.entity && this.presentation.usedNodeIds?.includes(cell.entity.id) ? 0.5 : 1); }
       active ||= now < cell.presence.start + cell.presence.duration;
       active ||= now < cell.curvature.start + cell.curvature.duration;
+      active ||= now < cell.fade.start + cell.fade.duration;
     }
+    // Every cell must have its new height before adjacent faces are clipped.
+    this.refreshSideFaces();
     const hovered = this.hovered && this.cells.get(cellKey(this.hovered));
-    this.hover.visible = !!hovered?.active; this.hover.y = hovered?.offset ?? 0;
+    this.hover.visible = !!hovered?.active; this.hover.y = hovered?.offset ?? 0; this.hover.alpha = hovered?.ground.alpha ?? 0;
     const t = Math.max(0, Math.min(1, (now - this.celebrationStart) / 760));
     this.celebration.visible = !reduced && t < 1;
     if (this.celebration.visible) {
@@ -316,6 +378,7 @@ export class WorldScene {
       const cell = [...this.cells.values()].find((c) => c.entity?.id === this.celebratedNode);
       if (cell?.object) {
         const center = tileCenter(cell.tile);
+        this.celebration.alpha = cell.ground.alpha;
         this.celebration.position.set(center.x, center.y + cell.offset - (cell.entity?.height ?? 0) - 20);
         cell.object.y -= Math.sin(t * Math.PI) * 7;
       }
@@ -325,12 +388,12 @@ export class WorldScene {
   pick(point: Point): GridPosition | null {
     for (const entity of this.orderedEntities) {
       const cell = this.cells.get(cellKey(entity.position));
-      if (cell?.active && cell.ground.alpha > 0.2 && cell.silhouette && pointInPolygon({ x: point.x, y: point.y - (cell.object ? cell.object.y - cell.objectY : cell.offset) }, cell.silhouette)) return { ...entity.position };
+      if (cell?.active && !cell.object?.culled && cell.ground.alpha > 0.2 && cell.silhouette && pointInPolygon({ x: point.x, y: point.y - (cell.object ? cell.object.y - cell.objectY : cell.offset) }, cell.silhouette)) return { ...entity.position };
     }
-    for (const cell of this.pickCells) if (cell.ground.alpha > 0.2 && pointInPolygon({ x: point.x, y: point.y - cell.offset }, cell.polygon)) return { col: cell.tile.col, row: cell.tile.row };
+    for (const cell of this.pickCells) if (!cell.ground.culled && cell.ground.alpha > 0.2 && pointInPolygon({ x: point.x, y: point.y - cell.offset }, cell.polygon)) return { col: cell.tile.col, row: cell.tile.row };
     return null;
   }
-  shiftTime(delta: number) { for (const cell of this.cells.values()) { cell.presence.start += delta; cell.curvature.start += delta; } this.pulseStart += delta; this.celebrationStart += delta; }
+  shiftTime(delta: number) { for (const cell of this.cells.values()) { cell.presence.start += delta; cell.curvature.start += delta; cell.fade.start += delta; } this.pulseStart += delta; this.celebrationStart += delta; }
 }
 export function buildWorldScene(world: WorldMap, player: GridPosition, lunar?: LunarSurfaceAtlas) { return new WorldScene(world, player, lunar); }
 

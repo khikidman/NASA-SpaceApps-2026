@@ -9,7 +9,8 @@ describe("home base navigation marker", () => {
   it("is hidden within the render radius and appears immediately beyond it", () => {
     expect(homeGuidance({ col: 12, row: 17 }, home, camera, 1000, 510)).toBeNull();
     expect(homeGuidance({ col: 15, row: 16 }, home, camera, 1000, 510)).toBeNull();
-    expect(homeGuidance({ col: 13, row: 17 }, home, camera, 1000, 510)).not.toBeNull();
+    expect(homeGuidance({ col: 14, row: 17 }, home, camera, 1000, 510)).toBeNull();
+    expect(homeGuidance({ col: 15, row: 17 }, home, camera, 1000, 510)).not.toBeNull();
     expect(homeGuidance({ col: 12, row: 18 }, home, camera, 1000, 510)?.distance).toBe(6);
   });
 

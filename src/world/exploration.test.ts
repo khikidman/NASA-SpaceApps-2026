@@ -5,23 +5,29 @@ import { gridToWorld, tileCenter } from "./isometric";
 import { cellKey, inRenderRange, RENDER_RADIUS, visibleTiles } from "./visibility";
 
 describe("player-centered render distance", () => {
-  it("uses a circular radius of five, with exactly 81 squares away from edges", () => {
+  it("rounds the five-square footprint into broad arcs without isolated axis tips", () => {
     const world = createOutpost(1);
     const player = world.spawn;
     expect(RENDER_RADIUS).toBe(5);
-    expect(visibleTiles(world, player)).toHaveLength(81);
+    expect(visibleTiles(world, player)).toHaveLength(97);
     expect(inRenderRange({ col: player.col + 5, row: player.row }, player)).toBe(true);
     expect(inRenderRange({ col: player.col + 3, row: player.row + 4 }, player)).toBe(true);
     expect(inRenderRange({ col: player.col + 4, row: player.row + 3 }, player)).toBe(true);
     expect(inRenderRange({ col: player.col + 4, row: player.row + 4 }, player)).toBe(false);
-    expect(inRenderRange({ col: player.col + 5, row: player.row + 1 }, player)).toBe(false);
+    expect(inRenderRange({ col: player.col + 5, row: player.row + 2 }, player)).toBe(true);
+    expect(inRenderRange({ col: player.col + 5, row: player.row + 3 }, player)).toBe(false);
+    expect(inRenderRange({ col: player.col + 6, row: player.row }, player)).toBe(false);
+    for (const axis of ["col", "row"] as const) for (const sign of [-1, 1]) {
+      const arc = visibleTiles(world, player).filter((tile) => tile[axis] === player[axis] + sign * 5);
+      expect(arc).toHaveLength(5);
+    }
   });
 
   it("stays within the circle and world bounds at every square, including corners", () => {
     const world = createOutpost(22);
     for (const player of world.tiles) {
       const tiles = visibleTiles(world, player);
-      expect(tiles.length).toBeLessThanOrEqual(81);
+      expect(tiles.length).toBeLessThanOrEqual(97);
       expect(new Set(tiles.map(cellKey)).size).toBe(tiles.length);
       for (const tile of tiles) {
         expect(inRenderRange(tile, player)).toBe(true);
@@ -31,7 +37,7 @@ describe("player-centered render distance", () => {
         expect(tile.row).toBeLessThan(world.height);
       }
     }
-    expect(visibleTiles(world, { col: 0, row: 0 })).toHaveLength(26);
+    expect(visibleTiles(world, { col: 0, row: 0 })).toHaveLength(30);
   });
 
   it("never picks hidden ground or hidden facility geometry", () => {
