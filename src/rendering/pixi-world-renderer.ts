@@ -1,16 +1,22 @@
 import { Application, RendererType, type WebGLRenderer } from "pixi.js";
 import { tileCenter, worldBounds } from "../world/isometric";
-import { pickWorldPosition } from "../world/map";
-import { inRenderRange, nearbyBounds } from "../world/visibility";
+import { nearbyBounds } from "../world/visibility";
 import type { GridPosition, Point, WorldMap, WorldPresentation, WorldRenderState } from "../world/types";
 import { constrainCamera, fitCamera, screenToWorld, zoomAt, type Camera } from "./camera";
 import type { WorldRenderer, WorldRendererCallbacks } from "./types";
-import { buildHomeMarker, buildWorldScene, drawTileHighlight } from "./world-scene";
+import { buildHomeMarker, buildWorldScene } from "./world-scene";
 import { homeGuidance } from "./home-guide";
+import { LunarSurfaceAtlas } from "./lunar-surface";
+import { beginWalk, walkAt, retimeWalk, STEP_MS, type WalkMotion } from "./motion";
 
 class PixiWorldRenderer implements WorldRenderer {
   private scene;
+  private readonly lunar: LunarSurfaceAtlas | undefined;
   private readonly homeMarker = buildHomeMarker();
+  private readonly objectiveMarker = buildHomeMarker("MISSION");
+  private objective: GridPosition | null = null;
+  private objectiveId: string | undefined;
+  private feedbackId: number | null = null;
   private readonly bounds;
   private readonly resizeObserver: ResizeObserver;
   private readonly listeners = new AbortController();
@@ -21,12 +27,25 @@ class PixiWorldRenderer implements WorldRenderer {
   private destroyed = false;
   private contextLost = false;
   private hover: GridPosition | null = null;
-  private selected: GridPosition;
   private snapshot: WorldRenderState;
-  private presentation: WorldPresentation = { lowPower: false, lowOxygen: false, missionEnded: false };
-  private gridVisible = true;
-  private lastKeyboardMove = 0;
-  private drag: { id: number; start: Point; camera: Camera; moved: boolean } | null = null;
+  private held: { key: string; direction: GridPosition } | null = null;
+  private drag: { id: number; start: Point; camera: Camera; moved: boolean; picked: GridPosition | null } | null = null;
+  private visualPlayer: GridPosition;
+  private motion: WalkMotion | null = null;
+  private queuedMotion: WalkMotion | null = null;
+  private motionNotified = false;
+  private stride = 0;
+  private handoff: { at: number; target: GridPosition } | null = null;
+  private pointer: Point | null = null;
+  private readonly motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  private reduced = this.motionPreference.matches;
+  private pausedAt: number | null = null;
+  private completionTimer: ReturnType<typeof setTimeout> | null = null;
+  private timedStep: { target: GridPosition; due: number; remaining: number } | null = null;
+  private reportedZoom = -1;
+  private minimumZoom = 0;
+  private area = { left: 0, top: 0, width: 80, height: 80 };
+  private renderedFrames = 0;
 
   constructor(
     private readonly app: Application<WebGLRenderer>,
@@ -40,17 +59,20 @@ class PixiWorldRenderer implements WorldRenderer {
     // @ts-expect-error Pixi 8.23 documents null for detachment but types only HTMLElement.
     this.app.renderer.events.setTargetElement(null);
     this.snapshot = initialState;
-    this.scene = buildWorldScene(world, initialState.player);
-    this.app.stage.addChild(this.scene.root, this.homeMarker.root);
-    this.selected = initialState.selected;
-    drawTileHighlight(this.scene.selection, world, this.selected, 0xf5e6b7);
+    this.visualPlayer = { ...initialState.player };
+    this.lunar = world.levelId === "moon" ? new LunarSurfaceAtlas(world.seed) : undefined;
+    this.scene = buildWorldScene(world, initialState.player, this.lunar);
+    this.app.stage.addChild(this.scene.root, this.homeMarker.root, this.objectiveMarker.root);
+    this.scene.setSelection(initialState.selected, performance.now(), false);
 
     const canvas = this.app.canvas;
     canvas.tabIndex = 0;
     canvas.setAttribute("role", "group");
-    canvas.setAttribute("aria-label", "Mars exploration world. Arrow keys or WASD move your astronaut. E or Enter uses a nearby facility. Click clear ground to walk. Plus and minus zoom. Home centers the player.");
+    canvas.setAttribute("aria-label", `${world.location} exploration world. Arrow keys or WASD move your astronaut. E or Enter uses a nearby facility. Click clear ground to walk. Plus and minus zoom. Home centers the player.`);
     canvas.setAttribute("aria-describedby", "world-controls-help world-selection");
     canvas.dataset.renderer = "webgl";
+    canvas.dataset.surface = this.lunar ? "lunar-regolith-atlas" : "mars";
+    canvas.dataset.surfaceVariants = String(this.lunar?.textures.length ?? 0);
     this.reportVisibleScene();
     this.host.appendChild(canvas);
     this.bindInput();
@@ -63,39 +85,160 @@ class PixiWorldRenderer implements WorldRenderer {
     if (this.destroyed) return;
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
-    const first = this.width === 0;
-    this.camera = first ? fitCamera(nearbyBounds(this.world, this.snapshot.player), width, height) : {
-      ...this.camera, x: this.camera.x + (width - this.width) / 2, y: this.camera.y + (height - this.height) / 2,
-    };
     this.width = width;
     this.height = height;
     this.app.renderer.resize(width, height, Math.min(window.devicePixelRatio || 1, 2));
-    this.applyCamera();
+    this.area = this.readViewArea();
+    this.fit();
   }
+
+  /** CSS defines the HUD safe area; picking still uses the full canvas. */
+  private readViewArea() {
+    const style = getComputedStyle(this.host);
+    this.minimumZoom = Math.max(0, parseFloat(style.getPropertyValue("--camera-min-zoom")) || 0);
+    const inset = (edge: string) => Math.max(0, parseFloat(style.getPropertyValue(`--camera-${edge}`)) || 0);
+    const left = Math.min(inset("left"), this.width / 3);
+    const top = Math.min(inset("top"), this.height / 3);
+    return { left, top,
+      width: Math.max(80, this.width - left - Math.min(inset("right"), this.width / 3)),
+      height: Math.max(80, this.height - top - Math.min(inset("bottom"), this.height / 2)),
+    };
+  }
+
+  private viewArea() { return this.area; }
 
   private applyCamera() {
     this.camera = constrainCamera(this.camera, this.bounds, this.width, this.height);
     this.scene.root.position.set(this.camera.x, this.camera.y);
     this.scene.root.scale.set(this.camera.zoom);
-    const guide = homeGuidance(this.snapshot.player, this.world.home, this.camera, this.width, this.height);
+    const area = this.viewArea();
+    const guide = homeGuidance(this.snapshot.player, this.world.home,
+      { ...this.camera, x: this.camera.x - area.left, y: this.camera.y - area.top }, area.width, area.height);
     this.homeMarker.root.visible = !!guide;
     this.app.canvas.dataset.homeGuide = String(!!guide);
     if (guide) {
-      this.homeMarker.root.position.set(guide.x, guide.y);
+      this.homeMarker.root.position.set(guide.x + area.left, guide.y + area.top);
       this.homeMarker.arrow.rotation = guide.angle;
       this.homeMarker.distance.text = `${guide.distance.toFixed(1)} squares`;
     }
-    this.callbacks.onZoom(this.camera.zoom);
+    const goal = this.objective && homeGuidance(this.snapshot.player, this.objective,
+      { ...this.camera, x: this.camera.x - area.left, y: this.camera.y - area.top }, area.width, area.height);
+    this.objectiveMarker.root.visible = !!goal;
+    if (goal) {
+      let x = goal.x + area.left;
+      if (guide && Math.hypot(goal.x - guide.x, goal.y - guide.y) < 95) x = Math.max(area.left + 75, Math.min(area.left + area.width - 75, x + (goal.x > area.width / 2 ? -95 : 95)));
+      this.objectiveMarker.root.position.set(x, goal.y + area.top); this.objectiveMarker.arrow.rotation = goal.angle;
+      this.objectiveMarker.distance.text = `${goal.distance.toFixed(0)} squares`;
+    }
+    if (Math.abs(this.reportedZoom - this.camera.zoom) > 0.0001) { this.reportedZoom = this.camera.zoom; this.callbacks.onZoom(this.camera.zoom); }
     this.requestRender();
   }
 
-  /** Coalesced, on-demand frames: idle worlds and hidden tabs do no rendering. */
+  /** A frame loop exists only while a walk, tile transition, or feedback pulse is active. */
   private requestRender() {
     if (this.destroyed || this.contextLost || document.hidden || this.frame) return;
-    this.frame = requestAnimationFrame(() => {
+    this.frame = requestAnimationFrame((now) => {
+      // Keep the id set during the frame so camera updates cannot schedule duplicate loops.
+      let walking = false;
+      // Prepare the following validated step one frame before arrival, then sample
+      // both sides of the boundary on the same clock. No stop-and-catch-up frame.
+      for (let segment = 0; this.motion && segment < 2; segment++) {
+        const motion = this.motion;
+        const sample = walkAt(motion, now);
+        this.moveVisual(sample.position, this.stride + sample.progress, !sample.done);
+        walking = !sample.done;
+        if (!this.motionNotified && now >= motion.start + motion.duration - 32) {
+          this.motionNotified = true;
+          this.callbacks.onMoveComplete({ ...motion.to });
+          if (this.held && document.activeElement === this.app.canvas) this.callbacks.onMove(this.held.direction);
+        }
+        if (!sample.done) break;
+        this.stride += 1;
+        if (this.queuedMotion) {
+          this.motion = this.queuedMotion; this.queuedMotion = null; this.motionNotified = false;
+          walking = true;
+        } else {
+          this.motion = null;
+          const target = this.snapshot.route?.[0];
+          this.handoff = target ? { at: motion.start + motion.duration, target } : null;
+          if (!target) this.scene.pulse(now);
+        }
+      }
+      this.scene.drawRoute(this.visualPlayer, this.snapshot.player, this.snapshot.route ?? []);
+      const animating = this.scene.update(now, this.reduced);
+      if (this.pointer && !this.drag?.moved) {
+        const hovered = this.pick(this.pointer);
+        if (hovered?.col !== this.hover?.col || hovered?.row !== this.hover?.row) {
+          this.hover = hovered; this.scene.setHover(hovered);
+        }
+      }
+      this.applyCamera();
+      this.reportAnimation(now);
+      if (!this.destroyed && !this.contextLost) { this.app.render(); this.renderedFrames++; }
       this.frame = 0;
-      if (!this.destroyed && !this.contextLost) this.app.render();
+      if (walking || animating) this.requestRender();
     });
+  }
+
+  private moveVisual(position: GridPosition, stride: number, walking: boolean) {
+    const old = tileCenter(this.visualPlayer); const next = tileCenter(position);
+    if (!this.drag?.moved) {
+      const dx = (old.x - next.x) * this.camera.zoom; const dy = (old.y - next.y) * this.camera.zoom;
+      this.camera.x += dx; this.camera.y += dy;
+      if (this.drag) { this.drag.camera.x += dx; this.drag.camera.y += dy; }
+    }
+    this.visualPlayer = { ...position };
+    this.scene.setPlayer(position, stride, walking && !this.reduced);
+  }
+  private reportAnimation(now: number) {
+    const canvas = this.app.canvas;
+    canvas.dataset.motionTime = now.toFixed(3);
+    canvas.dataset.visualPlayer = `${this.visualPlayer.col.toFixed(4)},${this.visualPlayer.row.toFixed(4)}`;
+    canvas.dataset.moving = String(!!this.motion || !!this.queuedMotion || !!this.timedStep);
+    canvas.dataset.outgoingTiles = String(this.scene.outgoingCount);
+    canvas.dataset.retainedTiles = String(this.scene.cells.size);
+    canvas.dataset.enteringTiles = String([...this.scene.cells.values()].filter((c) => c.active && c.ground.alpha < 1).length);
+    canvas.dataset.renderedFrames = String(this.renderedFrames);
+    canvas.dataset.camera = `${this.camera.x.toFixed(3)},${this.camera.y.toFixed(3)},${this.camera.zoom.toFixed(4)}`;
+  }
+  private scheduleCompletion(target: GridPosition, remaining = STEP_MS) {
+    if (this.completionTimer) clearTimeout(this.completionTimer);
+    this.timedStep = { target: { ...target }, remaining, due: performance.now() + remaining };
+    if (!document.hidden && !this.contextLost) this.completionTimer = setTimeout(() => {
+      this.completionTimer = null; this.timedStep = null;
+      if (!this.destroyed) { this.callbacks.onMoveComplete(target); this.requestRender(); }
+    }, remaining);
+  }
+  private refreshPause() {
+    const now = performance.now();
+    if (document.hidden || this.contextLost) {
+      this.stopHeld();
+      this.pausedAt ??= now;
+      cancelAnimationFrame(this.frame); this.frame = 0;
+      if (this.completionTimer) {
+        clearTimeout(this.completionTimer); this.completionTimer = null;
+        if (this.timedStep) this.timedStep.remaining = Math.max(0, this.timedStep.due - now);
+      }
+    } else {
+      if (this.pausedAt !== null) {
+        const delta = now - this.pausedAt;
+        if (this.motion) this.motion.start += delta;
+        if (this.queuedMotion) this.queuedMotion.start += delta;
+        this.scene.shiftTime(delta); this.handoff = null; this.pausedAt = null;
+      }
+      if (this.timedStep) this.scheduleCompletion(this.timedStep.target, this.timedStep.remaining);
+      this.requestRender();
+    }
+  }
+
+  private stopHeld() {
+    if (!this.held) return;
+    this.held = null;
+    if (!this.snapshot.route?.length) {
+      if (this.queuedMotion) this.queuedMotion = beginWalk(this.queuedMotion.from, this.queuedMotion.to, this.queuedMotion.start, false, true);
+      else if (this.motion) this.motion = retimeWalk(this.motion, true, performance.now());
+    }
+    this.requestRender();
   }
 
   private localPoint(event: { clientX: number; clientY: number }): Point {
@@ -105,11 +248,11 @@ class PixiWorldRenderer implements WorldRenderer {
   }
 
   private pick(point: Point) {
-    return pickWorldPosition(this.world, screenToWorld(point, this.camera), this.snapshot.player);
+    return this.scene.pick(screenToWorld(point, this.camera));
   }
 
   private select(position: GridPosition) {
-    this.selected = position;
+    this.scene.setSelection(position, performance.now(), !this.reduced);
     this.callbacks.onSelect(position);
     this.requestRender();
   }
@@ -119,9 +262,10 @@ class PixiWorldRenderer implements WorldRenderer {
     const signal = this.listeners.signal;
     canvas.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || this.drag || this.contextLost) return;
+      this.stopHeld();
       canvas.focus({ preventScroll: true });
       canvas.setPointerCapture(event.pointerId);
-      this.drag = { id: event.pointerId, start: this.localPoint(event), camera: { ...this.camera }, moved: false };
+      this.drag = { id: event.pointerId, start: this.localPoint(event), camera: { ...this.camera }, moved: false, picked: this.pick(this.localPoint(event)) };
     }, { signal });
     canvas.addEventListener("pointermove", (event) => {
       if (this.contextLost) return;
@@ -138,30 +282,26 @@ class PixiWorldRenderer implements WorldRenderer {
         }
         return;
       }
-      const hover = this.pick(point);
-      if (hover?.col !== this.hover?.col || hover?.row !== this.hover?.row) {
-        this.hover = hover;
-        drawTileHighlight(this.scene.hover, this.world, hover, 0xffffff);
-        this.requestRender();
-      }
+      this.pointer = point;
+      this.requestRender();
     }, { signal });
     canvas.addEventListener("pointerup", (event) => {
       if (this.drag?.id !== event.pointerId) return;
       const dragged = this.drag.moved;
+      const picked = this.drag.picked;
       this.drag = null;
       canvas.classList.remove("is-panning");
       if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
       if (!dragged) {
-        const position = this.pick(this.localPoint(event));
-        if (position) this.select(position);
+        if (picked) this.select(picked);
       }
     }, { signal });
     const cancelDrag = () => { this.drag = null; canvas.classList.remove("is-panning"); };
     canvas.addEventListener("pointercancel", cancelDrag, { signal });
     canvas.addEventListener("lostpointercapture", cancelDrag, { signal });
     canvas.addEventListener("pointerleave", () => {
-      this.hover = null;
-      drawTileHighlight(this.scene.hover, this.world, null, 0xffffff);
+      this.pointer = null; this.hover = null;
+      this.scene.setHover(null);
       this.requestRender();
     }, { signal });
     canvas.addEventListener("wheel", (event) => {
@@ -182,65 +322,78 @@ class PixiWorldRenderer implements WorldRenderer {
       if (Object.hasOwn(directions, key)) {
         event.preventDefault();
         if (event.shiftKey) {
+          this.stopHeld();
           const direction = directions[key];
           this.camera = { ...this.camera, x: this.camera.x - direction.col * 40, y: this.camera.y - direction.row * 40 };
         } else {
-          if (!event.repeat || performance.now() - this.lastKeyboardMove >= 140) {
-            this.lastKeyboardMove = performance.now();
+          if (!event.repeat) {
+            this.held = { key, direction: directions[key] };
             this.callbacks.onMove(directions[key]);
           }
         }
         this.applyCamera();
       } else if (key === "e" || event.key === "Enter") {
         event.preventDefault();
-        this.callbacks.onInteract();
+        if (!event.repeat) this.callbacks.onInteract();
       } else if (["+", "=", "-", "Home"].includes(event.key)) {
         event.preventDefault();
         if (event.key === "Home") this.fit();
         else this.zoomBy(event.key === "-" ? 1 / 1.2 : 1.2);
       }
     }, { signal });
+    window.addEventListener("keyup", (event) => {
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      if (key === this.held?.key) this.stopHeld();
+    }, { signal });
+    canvas.addEventListener("blur", () => this.stopHeld(), { signal });
+    window.addEventListener("blur", () => this.stopHeld(), { signal });
     canvas.addEventListener("webglcontextlost", (event) => {
       event.preventDefault();
       this.contextLost = true;
-      cancelAnimationFrame(this.frame);
-      this.frame = 0;
-      cancelDrag();
+      this.refreshPause();
+      cancelDrag(); this.stopHeld();
       this.callbacks.onContextChange(false);
     }, { signal });
     canvas.addEventListener("webglcontextrestored", () => {
       this.contextLost = false;
       this.callbacks.onContextChange(true);
-      this.requestRender();
+      this.refreshPause();
     }, { signal });
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) { cancelAnimationFrame(this.frame); this.frame = 0; }
-      else this.requestRender();
+    document.addEventListener("visibilitychange", () => this.refreshPause(), { signal });
+    this.motionPreference.addEventListener("change", () => {
+      this.reduced = this.motionPreference.matches;
+      if (this.reduced && this.motion) {
+        const target = this.queuedMotion?.to ?? this.motion.to; this.motion = null; this.queuedMotion = null; this.handoff = null;
+        this.moveVisual(target, 0, false); this.scheduleCompletion(target);
+      }
+      this.scene.update(performance.now(), this.reduced); this.requestRender();
     }, { signal });
   }
 
   setPresentation(presentation: WorldPresentation) {
-    this.presentation = presentation;
-    for (const light of this.scene.lights) {
-      const warning = presentation.missionEnded || presentation.lowPower || (light.kind === "oxygen" && presentation.lowOxygen);
-      light.graphic.tint = warning ? 0xf2af54 : 0x91d4bc;
+    this.scene.setPresentation(presentation);
+    if (presentation.objectiveNodeId !== this.objectiveId) {
+      this.objectiveId = presentation.objectiveNodeId; this.objective = this.world.entities.find((e) => e.id === this.objectiveId)?.position ?? null;
     }
-    this.requestRender();
+    if (presentation.feedback && this.feedbackId !== null && presentation.feedback.id !== this.feedbackId && presentation.feedback.nodeId) this.scene.celebrate(presentation.feedback.nodeId, presentation.feedback.success, performance.now());
+    this.feedbackId = presentation.feedback?.id ?? this.feedbackId ?? 0;
+    this.applyCamera();
   }
-
   setGridVisible(visible: boolean) {
-    this.gridVisible = visible;
-    this.scene.grid.visible = visible;
-    this.requestRender();
+    this.scene.setGridVisible(visible); this.requestRender();
   }
 
   zoomBy(factor: number) {
-    this.camera = zoomAt(this.camera, { x: this.width / 2, y: this.height / 2 }, this.camera.zoom * factor);
+    const area = this.viewArea();
+    this.camera = zoomAt(this.camera, { x: area.left + area.width / 2, y: area.top + area.height / 2 }, this.camera.zoom * factor);
     this.applyCamera();
   }
 
   fit() {
-    this.camera = fitCamera(nearbyBounds(this.world, this.snapshot.player), this.width, this.height);
+    const area = this.viewArea();
+    const fitted = fitCamera(nearbyBounds(this.world, this.snapshot.player), area.width, area.height, 24);
+    const framed = zoomAt(fitted, { x: area.width / 2, y: area.height / 2 }, Math.max(fitted.zoom, this.minimumZoom));
+    this.camera = { ...framed, x: framed.x + area.left, y: framed.y + area.top };
     this.applyCamera();
   }
 
@@ -249,38 +402,55 @@ class PixiWorldRenderer implements WorldRenderer {
     canvas.dataset.visibleTiles = this.scene.tileKeys.join(";");
     canvas.dataset.visibleEntities = this.scene.entityIds.join(";");
     canvas.dataset.player = `${this.snapshot.player.col},${this.snapshot.player.row}`;
+    canvas.dataset.route = (this.snapshot.route ?? []).map((p) => `${p.col},${p.row}`).join(";");
   }
 
   setExplorer(state: WorldRenderState) {
-    const moved = state.player.col !== this.snapshot.player.col || state.player.row !== this.snapshot.player.row;
+    const previous = this.snapshot;
+    const moved = state.player.col !== previous.player.col || state.player.row !== previous.player.row;
+    const selectionChanged = state.selected.col !== previous.selected.col || state.selected.row !== previous.selected.row;
     this.snapshot = state;
-    this.selected = state.selected;
+    const now = performance.now();
     if (moved) {
-      const old = this.scene;
-      this.app.stage.removeChild(old.root);
-      old.root.destroy({ children: true, context: true });
-      this.scene = buildWorldScene(this.world, state.player);
-      this.scene.grid.visible = this.gridVisible;
-      this.app.stage.addChildAt(this.scene.root, 0);
-      this.hover = null;
-      this.setPresentation(this.presentation);
-      const center = tileCenter(state.player);
-      this.camera = { ...this.camera, x: this.width / 2 - center.x * this.camera.zoom,
-        y: this.height / 2 - center.y * this.camera.zoom + 24 * this.camera.zoom };
+      this.scene.syncVisible(state.player, now, this.reduced);
+      const distance = Math.abs(state.player.col - previous.player.col) + Math.abs(state.player.row - previous.player.row);
+      if (this.reduced || distance > 1) {
+        this.motion = null; this.queuedMotion = null; this.moveVisual(state.player, 0, false); this.scheduleCompletion(state.player);
+      } else {
+        if (this.motion && now < this.motion.start + this.motion.duration) {
+          this.queuedMotion = beginWalk(this.motion.to, state.player, this.motion.start + this.motion.duration, false, (!state.route?.length && !this.held));
+        } else {
+          const handoff = this.handoff;
+          const continuous = handoff && now - handoff.at < 80 && handoff.target.col === state.player.col && handoff.target.row === state.player.row;
+          this.motion = beginWalk(this.visualPlayer, state.player, continuous ? handoff.at : now, !continuous, (!state.route?.length && !this.held));
+          this.motionNotified = false; this.handoff = null;
+        }
+      }
+      this.hover = null; this.scene.setHover(null);
+    } else {
+      const motion = this.queuedMotion ?? this.motion;
+      if (motion && motion.to.col === state.player.col && motion.to.row === state.player.row && motion.decelerate !== (!state.route?.length && !this.held)) {
+        if (this.queuedMotion) {
+          this.queuedMotion = beginWalk(motion.from, motion.to, motion.start, motion.accelerate, (!state.route?.length && !this.held));
+        } else {
+          this.motion = retimeWalk(motion, (!state.route?.length && !this.held), now);
+        }
+      }
     }
-    drawTileHighlight(this.scene.selection, this.world,
-      inRenderRange(state.selected, state.player) ? state.selected : null, 0xf5e6b7);
-    this.reportVisibleScene();
-    this.applyCamera();
+    if (selectionChanged) this.scene.setSelection(state.selected, now, !this.reduced);
+    this.scene.drawRoute(this.visualPlayer, state.player, state.route ?? []);
+    this.reportVisibleScene(); this.applyCamera();
   }
 
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
     cancelAnimationFrame(this.frame);
+    if (this.completionTimer) clearTimeout(this.completionTimer);
     this.listeners.abort();
     this.resizeObserver.disconnect();
-    this.app.destroy({ removeView: true }, { children: true, context: true, texture: true, textureSource: true });
+    this.app.destroy({ removeView: true }, { children: true, context: true });
+    this.lunar?.destroy();
   }
 }
 
@@ -295,7 +465,7 @@ export async function createWorldRenderer(
   try {
     await app.init({
       width: Math.max(1, host.clientWidth), height: Math.max(1, host.clientHeight),
-      preference: ["webgl"], background: 0xead3b6, antialias: true,
+      preference: ["webgl"], background: 0x000000, backgroundAlpha: 0, antialias: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
       autoStart: false, sharedTicker: false,
     });

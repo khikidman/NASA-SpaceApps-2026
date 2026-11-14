@@ -1,18 +1,15 @@
 "use client";
-
 import { useMemo } from "react";
-import type { GameState } from "@/game/types";
+import type { GameAction, GameState } from "@/game/types";
+import type { InteractionFeedback, MissionTarget } from "@/world/types";
+import { getTask } from "@/data/tasks";
 import { createOutpost } from "@/world/map";
 import { WorldView } from "./world-view";
-
-/** One-way adapter from mission data into a spatial, read-only presentation. */
-export function MissionWorld({ game }: { game: GameState }) {
-  const world = useMemo(() => createOutpost(game.seed), [game.seed]);
-  const presentation = useMemo(() => ({
-    lowPower: game.resources.power <= 20,
-    lowOxygen: game.resources.oxygen <= 20,
-    missionEnded: game.status !== "playing",
-  }), [game.resources.power, game.resources.oxygen, game.status]);
-
-  return <WorldView key={game.seed} world={world} presentation={presentation} />;
+export function MissionWorld({ game, act, onOpen, feedback, target }: { game: GameState; act: (action: GameAction) => void; onOpen: (id: string) => void; feedback: InteractionFeedback | null; target: MissionTarget | null }) {
+  const world = useMemo(() => createOutpost(game.seed, game.missionId), [game.seed, game.missionId]);
+  const presentation = useMemo(() => ({ lowPower: game.resources.power <= 20, lowOxygen: game.resources.oxygen <= 20,
+    missionEnded: game.status !== "playing", feedback, objectiveNodeId: target?.nodeId, usedNodeIds: [...game.collectedNodes, ...world.entities.filter((n) => n.interaction.type === "task" &&
+      (game.taskProgress[n.interaction.taskId] ?? 0) >= getTask(game.missionId, n.interaction.taskId).steps.length).map((n) => n.id)],
+  }), [game.resources.power, game.resources.oxygen, game.status, game.collectedNodes, game.taskProgress, game.missionId, world, feedback, target]);
+  return <WorldView key={`${game.seed}-${game.missionId}`} world={world} presentation={presentation} game={game} act={act} onOpen={onOpen} target={target} />;
 }

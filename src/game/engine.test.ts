@@ -1,122 +1,113 @@
 import { describe, expect, it } from "vitest";
-import { EVENTS, getEvent } from "../data/events";
-import { MARS_MISSION } from "../data/missions";
+import { EVENTS, getDailyEvent } from "../data/events";
+import { MISSIONS } from "../data/missions";
+import { TASKS } from "../data/tasks";
 import { SOURCES } from "../data/sources";
-import { advanceTurn, canAfford, createGame, getChoices } from "./engine";
-import { RESOURCE_KEYS, type GameState } from "./types";
-
-// A simple survival-oriented policy, independent of the event-selection algorithm.
-function survivalChoice(state: GameState) {
-  return getChoices(state)
-    .filter((choice) => canAfford(state.resources, choice))
-    .map((choice) => {
-      const next = advanceTurn(state, choice.id);
-      const { oxygen, power, shielding, science } = next.resources;
-      const value = next.status === "lost" ? -1_000_000
-        : Math.min(oxygen, 65) * 2 + Math.min(power, 45) * 1.5 + Math.min(shielding, 24) * 0.3 + science * 0.05;
-      return { choice, value };
-    })
-    .sort((left, right) => right.value - left.value)[0].choice.id;
-}
-
-describe("mission simulation", () => {
-  it("produces the same sequence and outcomes from the same seed and decisions", () => {
-    let first = createGame(1234);
-    let second = createGame(1234);
-    while (first.status === "playing") {
-      const choice = survivalChoice(first);
-      first = advanceTurn(first, choice);
-      second = advanceTurn(second, choice);
-    }
-    expect(first).toEqual(second);
+import { createOutpost } from "../world/map";
+import { applyAction, canEndDay, checkAnswer, createGame, previewNight } from "./engine";
+import { finishTask, playDay, walkToNode } from "./test-helpers";
+import { RESOURCE_KEYS } from "./types";
+describe("learning journey", () => {
+  it("starts on Moon day 1, rejects early travel and finishing without learning", () => {
+    const game = createGame(10);
+    expect(game).toMatchObject({ missionId: "moon", day: 1, timeLeft: 16, knowledgeEarned: 0 });
+    expect(game.resources.science).toBe(6);
+    expect(() => applyAction(game, { type: "travel" })).toThrow("7 Moon days");
+    expect(() => applyAction(game, { type: "end-day", choiceId: "recycle" })).toThrow("whole challenge");
+    for (const seed of [-1, 1.5, NaN, Infinity, 0x100000000]) expect(() => createGame(seed)).toThrow();
   });
-
-  it("leaves the previous state and its resource snapshots unchanged", () => {
-    const before = createGame(12);
-    const snapshot = structuredClone(before);
-    const after = advanceTurn(before, getEvent(before.eventId).choices[0].id);
-    after.resources.oxygen = 1;
-    expect(before).toEqual(snapshot);
-    expect(after.history[0].before).toEqual(snapshot.resources);
-    expect(after.history[0].after.oxygen).not.toBe(1);
+  it("validates movement and collection proximity; caps tanks and prevents farming", () => {
+    const original = createGame(2); const snapshot = structuredClone(original);
+    expect(() => applyAction(original, { type: "collect", nodeId: "oxygen-01" })).toThrow("beside");
+    expect(() => applyAction(original, { type: "move", position: { col: 15, row: 13 } })).toThrow("one clear square");
+    expect(() => applyAction(original, { type: "move", position: { col: 12, row: 12 } })).toThrow();
+    let game = walkToNode(original, "oxygen-01");
+    game = { ...game, resources: { ...game.resources, oxygen: 95 } };
+    game = applyAction(game, { type: "collect", nodeId: "oxygen-01" });
+    expect(game.resources.oxygen).toBe(100); expect(game.resources.power).toBe(72); expect(game.timeLeft).toBe(15);
+    expect(() => applyAction(game, { type: "collect", nodeId: "oxygen-01" })).toThrow("used this stop");
+    expect(original).toEqual(snapshot);
   });
-
-  it("caps action production before applying daily consumption", () => {
-    const state = { ...createGame(1), eventId: "settle-in", resources: { oxygen: 95, power: 70, shielding: 40, science: 0 } };
-    const next = advanceTurn(state, "make-oxygen");
-    expect(next.resources).toEqual({ oxygen: 94, power: 66, shielding: 40, science: 0 });
+  it("charges each successful subtask and counts gross knowledge separately from the bank", () => {
+    let game = walkToNode(createGame(2), "lab-01");
+    const before = structuredClone(game);
+    expect(() => applyAction(game, { type: "submit", nodeId: "lab-01", answers: ["craters-1"] })).toThrow("No supplies were used");
+    expect(game).toEqual(before);
+    game = applyAction(game, { type: "submit", nodeId: "lab-01", answers: ["craters-0"] });
+    expect(game.resources.science).toBe(10); expect(game.knowledgeEarned).toBe(5); expect(game.timeLeft).toBe(14); expect(canEndDay(game)).toBe(false);
+    game = applyAction(game, { type: "submit", nodeId: "lab-01", answers: ["jar", "air", "camera"] });
+    expect(game.resources.science).toBe(16); expect(game.knowledgeEarned).toBe(13); expect(canEndDay(game)).toBe(true);
+    expect(game.discoveries).toHaveLength(2);
+    expect(() => applyAction(game, { type: "submit", nodeId: "lab-01", answers: ["jar", "air"] })).toThrow("finished this challenge");
   });
-
-  it("absorbs storm impact with shielding and uses oxygen for the remainder", () => {
-    const state = { ...createGame(1), day: 3, eventId: "solar-alert", resources: { oxygen: 75, power: 70, shielding: 5, science: 0 } };
-    const next = advanceTurn(state, "observe");
-    expect(next.resources).toEqual({ oxygen: 53, power: 68, shielding: 0, science: 20 });
-    expect(next.history[0]).toMatchObject({ shieldAbsorbed: 5, emergencyOxygen: 13 });
-    expect(next.status).toBe("playing");
+  it("enforces knowledge and time costs even when an optional item rewards knowledge", () => {
+    const game = walkToNode(createGame(1), "lab-01");
+    const step = TASKS.moon[0].steps[1];
+    const second = { ...game, taskProgress: { samples: 1 }, resources: { ...game.resources, science: 1 } };
+    expect(() => applyAction(second, { type: "submit", nodeId: "lab-01", answers: ["jar", "air", "camera"] })).toThrow("more supplies or knowledge");
+    expect(checkAnswer(step, ["jar", "air", "battery"])).toBe(false);
+    expect(checkAnswer(step, ["jar", "air", "air"])).toBe(false);
+    expect(checkAnswer(step, ["jar", "air", "invented"])).toBe(false);
+    expect(() => applyAction({ ...game, timeLeft: 1 }, { type: "submit", nodeId: "lab-01", answers: ["craters-0"] })).toThrow("work hours");
   });
-
-  it("rejects unavailable choices, unaffordable actions, and invalid seeds", () => {
-    expect(() => advanceTurn(createGame(1), "invented-choice")).toThrow("not available");
-    const poor = { ...createGame(1), eventId: "settle-in", resources: { oxygen: 75, power: 5, shielding: 0, science: 0 } };
-    expect(() => advanceTurn(poor, "make-oxygen")).toThrow("Not enough supplies");
-    for (const seed of [-1, 1.5, Number.NaN, Infinity, 0x100000000]) expect(() => createGame(seed)).toThrow();
-    expect(createGame(0)).toEqual(createGame(1));
-  });
-
-  it("prioritizes survival over victory on the final sol", () => {
-    const state = { ...createGame(1), day: 15, eventId: "settle-in", resources: { oxygen: 7, power: 70, shielding: 0, science: 0 } };
-    const next = advanceTurn(state, "study-rocks");
-    expect(next.status).toBe("lost");
-    expect(next.resources.oxygen).toBe(0);
-    expect(() => advanceTurn(next, "study-rocks")).toThrow("already ended");
-  });
-
-  it("always allows a turn to resolve even when normal choices are unaffordable", () => {
-    for (const event of EVENTS) {
-      const state = { ...createGame(1), eventId: event.id, resources: { oxygen: 1, power: 1, shielding: 0, science: 0 } };
-      const choices = getChoices(state);
-      expect(choices.some((choice) => canAfford(state.resources, choice))).toBe(true);
-      const available = choices.find((choice) => canAfford(state.resources, choice))!;
-      expect(() => advanceTurn(state, available.id)).not.toThrow();
-    }
-    expect(() => advanceTurn(createGame(1), "emergency-rest")).toThrow("not available");
-  });
-
-  it("supports a winning strategy across 200 seeds and keeps resources within bounds", () => {
-    for (let seed = 1; seed <= 200; seed++) {
-      let state = createGame(seed);
-      while (state.status === "playing") {
-        const event = getEvent(state.eventId);
-        expect(event.minDay).toBeLessThanOrEqual(state.day);
-        if (state.history.length) expect(event.id).not.toBe(state.history.at(-1)?.eventId);
-        state = advanceTurn(state, survivalChoice(state));
-        for (const key of RESOURCE_KEYS) {
-          expect(state.resources[key]).toBeGreaterThanOrEqual(0);
-          expect(state.resources[key]).toBeLessThanOrEqual(MARS_MISSION.capacity[key]);
+  it("supports all six challenges and validates sequence order", () => {
+    for (const missionId of ["moon", "mars"] as const) {
+      for (const task of TASKS[missionId]) {
+        const game = { ...createGame(1), missionId };
+        const node = createOutpost(1, missionId).entities.find((n) => n.interaction.type === "task" && n.interaction.taskId === task.id)!;
+        const after = finishTask(game, node.id);
+        expect(after.taskProgress[task.id]).toBe(2); expect(canEndDay(after)).toBe(true);
+        for (const step of task.steps) {
+          expect(checkAnswer(step, [...step.answer])).toBe(true);
+          if (step.kind === "order") expect(checkAnswer(step, [...step.answer].reverse())).toBe(false);
         }
       }
-      expect(state.status, `seed ${seed}`).toBe("won");
-      expect(state.history).toHaveLength(15);
-      expect(state.day).toBe(15);
-      expect(() => advanceTurn(state, "make-oxygen")).toThrow("already ended");
+    }
+  });
+  it("allows a limited daily learning boost and chooses world events from conditions", () => {
+    const game = applyAction(createGame(1), { type: "learn" });
+    expect(game.dayKnowledge).toBe(2); expect(game.timeLeft).toBe(14);
+    expect(() => applyAction(game, { type: "learn" })).toThrow("read today");
+    expect(getDailyEvent({ ...game, day: 2 }).id).toBe("moonquake");
+    expect(getDailyEvent({ ...game, missionId: "mars", day: 2 }).id).toBe("mars-dust");
+    expect(getDailyEvent({ ...game, resources: { ...game.resources, water: 20 } }).id).toBe("water-low");
+    expect(getDailyEvent({ ...game, day: 3, resources: { ...game.resources, shielding: 5 } }).id).toBe("sun-alert");
+  });
+  it("previews all night changes and resolves survival before a final-day unlock", () => {
+    const game = { ...finishTask(createGame(1)), day: 7 };
+    const preview = previewNight(game, "recycle"); const after = applyAction(game, { type: "end-day", choiceId: "recycle" });
+    expect(after.resources).toEqual(preview.resources); expect(after.status).toBe("level-complete");
+    expect(after.history[0].after).not.toBe(after.resources);
+    const noStars = { ...game, day: 2, resources: { ...game.resources, science: 0 } };
+    expect(previewNight(noStars, "listen").affordable).toBe(false);
+    expect(() => applyAction(noStars, { type: "end-day", choiceId: "listen" })).toThrow("more supplies or stars");
+    const low = { ...game, resources: { ...game.resources, oxygen: 4 } };
+    expect(applyAction(low, { type: "end-day", choiceId: "recycle" }).status).toBe("lost");
+  });
+  it("completes exactly seven days per world with a repeatable, legal survival strategy", () => {
+    for (const seed of [1, 17, 1234, 4294967295]) {
+      let game = createGame(seed);
+      for (let i = 0; i < 7; i++) { game = playDay(game); if (i < 6) expect(game.missionId).toBe("moon"); }
+      expect(game.status).toBe("level-complete"); expect(game.history).toHaveLength(7); expect(game.day).toBe(7);
+      const score = game.knowledgeEarned; const stars = game.resources.science;
+      game = applyAction(game, { type: "travel" });
+      expect(game).toMatchObject({ missionId: "mars", day: 1, knowledgeEarned: score, resources: { science: stars } });
+      for (const key of ["oxygen", "water", "power", "shielding"] as const) expect(game.resources[key]).toBe(100);
+      for (let i = 0; i < 7; i++) game = playDay(game);
+      expect(game.status).toBe("won"); expect(game.history).toHaveLength(14); expect(game.completedLevels).toEqual(["moon", "mars"]);
+      expect(game.discoveries).toHaveLength(28);
+      for (const key of RESOURCE_KEYS) expect(game.resources[key]).toBeLessThanOrEqual(MISSIONS.mars.capacity[key]);
+      expect(() => applyAction(game, { type: "learn" })).toThrow("finished");
     }
   });
 });
-
-describe("curated content integrity", () => {
-  it("has unique event/choice IDs, valid source references, and finite integer game values", () => {
-    expect(new Set(EVENTS.map((event) => event.id)).size).toBe(EVENTS.length);
-    for (const event of EVENTS) {
-      expect(SOURCES.some((source) => source.id === event.sourceId)).toBe(true);
-      expect(event.choices.length).toBeGreaterThanOrEqual(2);
-      expect(new Set(event.choices.map((choice) => choice.id)).size).toBe(event.choices.length);
-      expect(event.radiation).toBeGreaterThanOrEqual(0);
-      for (const effects of [event.effects, ...event.choices.map((choice) => choice.effects)]) {
-        for (const [key, value] of Object.entries(effects)) {
-          expect(RESOURCE_KEYS).toContain(key);
-          expect(Number.isInteger(value)).toBe(true);
-        }
-      }
+describe("educational content integrity", () => {
+  it("uses known sources, unique IDs, and positive knowledge costs and rewards", () => {
+    for (const event of EVENTS) { expect(SOURCES.some((s) => s.id === event.sourceId)).toBe(true); expect(new Set(event.choices.map((c) => c.id)).size).toBe(event.choices.length); }
+    for (const tasks of Object.values(TASKS)) for (const task of tasks) for (const step of task.steps) {
+      expect(SOURCES.some((s) => s.id === step.sourceId)).toBe(true);
+      expect(step.cost.science).toBeLessThan(0); expect(step.reward).toBeGreaterThan(Math.abs(step.cost.science!));
+      expect(new Set(step.options.map((o) => o.id)).size).toBe(step.options.length);
     }
   });
 });

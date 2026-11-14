@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "generatorVersion": "lunar-v1",
+  "settings": {
+    "baseColor": "#999895",
+    "rimColor": "#d0cec0",
+    "floorColor": "#a8a79b",
+    "shadowColor": "#52534f",
+    "grain": 11,
+    "craterDensity": 1,
+    "craterScale": 1,
+    "pebbleDensity": 1,
+    "dustOpacity": 1,
+    "trackOpacity": 1
+  }
+}

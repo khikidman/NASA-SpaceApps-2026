@@ -1,57 +1,40 @@
-# Architecture
+# Learning journey architecture
 
-## Boundaries
+## Authority and boundaries
 
-`src/game` contains synchronous TypeScript functions with no React, browser, network, or clock dependency. It imports the curated configuration and event catalog. The catalog is trusted, reviewed application content; raw external JSON must be validated before entering this boundary.
+`src/game/engine.ts` is a synchronous, immutable action boundary. It has no browser, network, clock, or React dependency. Movement, adjacency, supply collection, task answers, time, knowledge, night decisions, survival, and travel are validated here. `src/data` contains trusted authored content; external datasets would need validation before entering this boundary.
 
-`src/features/mission` connects the engine to React and browser storage. Pages use the Next.js App Router. Interactive UI runs in a client component. `/about` and `/api/events` are static server outputs.
+React owns transient selection, routes, panels, and hints. `use-mission` owns the single authoritative game state. `use-explorer` emits movement intentions; it no longer persists an independent player position. The renderer sees read-only spatial snapshots and presentation flags, and cannot grant supplies or unlock worlds.
 
-The isometric world has separate navigation and presentation boundaries: `src/world` owns spatial data and math, `src/rendering` implements the PixiJS WebGL adapter, and `src/features/world` connects discrete player commands to React. Spatial movement, visibility, routing, interaction, and save validation live in `src/world/exploration.ts` and `src/world/visibility.ts`. The adapter receives a world snapshot and presentation flags, never a mutable mission state. See [isometric world architecture](isometric-world.md).
+Both worlds use `MissionConfig`, the same map generator, and the same action rules. World-specific task/fact/event content and terrain colors are data or presentation differences. The public static content API is not called on the gameplay path.
 
-The public API exposes the same illustrative dataset used locally. Gameplay does not request this endpoint per turn. There is no backend game session or process-local shared state.
+## Daily loop
 
-## Turn contract
+1. Begin Moon day 1 with six spendable stars and 16 work hours. Starting stars do not count as earned knowledge.
+2. Move one walkable square at a time, without charging work hours.
+3. Collect adjacent supply nodes once per day. Positive supplies are capped; costs must be affordable before rewards.
+4. Complete adjacent two-step challenges. Pick, pack, and order answers are validated by IDs. Duplicate/unknown items, overweight bags, and wrong sequences are rejected without spending supplies. Each accepted step pays a predetermined cost and earns knowledge.
+5. Unlock bedtime after six earned stars and at least one complete challenge. A limited daily learning card helps beginners; it cannot replace the challenge goal.
+6. Choose a conditional night plan. Report costs two stars, decision costs one, reflection rewards two. Apply plan effects/caps, then fictional shield impact, then event effects and daily upkeep. The UI previews the complete change.
+7. Resolve survival before completion: zero air, water, or power ends the trip. Otherwise reset daily tasks, nodes, and hours, or finish the seventh day.
+8. Moon day 7 unlocks explicit travel. Travel refills physical supply tanks to capacity, keeps the bank/total score/book/history, and resets local daily progress. Mars day 7 completes the journey.
 
-1. Display the current event, its known consequences, and three choices.
-2. Validate mission status, choice membership, and available resources. Action costs must be affordable from the current balances; future generation cannot finance an action.
-3. Apply action effects and clamp resources to storage capacity.
-4. Resolve storm impact: consume shield reserve, then emergency oxygen for unabsorbed points. This is an explicitly fictional mechanic.
-5. Combine event effects and daily upkeep, then clamp to resource bounds.
-6. Lose if oxygen or power is zero. Otherwise win if this was sol 15.
-7. If still playing, advance the sol and pick an eligible event, excluding the immediately previous event.
-8. Record a before/after summary. The completed state never advances again.
+Total knowledge earned counts gross rewards and never decreases from spending. The spendable science balance can decrease. Day knowledge and completed challenge gates are separate from the bank. Discovery cards persist across both worlds.
 
-When no normal action is affordable, a single emergency "Conserve supplies" action replaces the choices so the player can still resolve the turn. It adds no resources; event effects and upkeep still apply. It cannot be selected when normal actions are affordable.
+Conditional event priority is low water, low power, world/day events, Sun alert when shielding is low, then a quiet evening. No lunar dust storms or Martian moonquakes are generated. These are authored conditions, not live observations or forecasts.
 
-Only the end-of-sol balances determine survival. Shielding and science may be zero without losing. Science is a bonus, not a win requirement. There is no funding resource.
+## Saves and replay
 
-## Determinism and saves
+The new `space-explorer:journey:v2` save records seed, format/ruleset/dataset versions, and accepted typed actions. Restore begins on the Moon and replays every validated action. Resource totals, positions, unlock flags, and scores supplied alongside the log are ignored. Invalid sequences, incompatible versions, payloads over 1 MB, and histories over 10,000 actions are rejected visibly.
 
-The engine receives an explicit unsigned 32-bit seed. A xorshift generator controls event selection. Seed zero normalizes to one to avoid an absorbing zero state. The simulation never calls `Math.random()`, `Date.now()`, or an external service.
+Old prototype keys remain untouched. Browser storage failures leave play available with a notice. Camera, routes, panels, wrong answers, and hints are transient. Reload closes panels but restores accepted subtask progress.
 
-A save records a format version, ruleset version, dataset version, mission ID, initial seed, and the completed choice IDs. Restoring replays the choices through the engine. This rejects malformed or impossible action sequences and prevents resource totals from being trusted blindly. It is not anti-cheat: anyone controlling a browser can create a valid high-scoring replay. Competitive scores would need server validation and an agreed seed.
+Replay validation is not competitive anti-cheat. Hosted scores/cloud saves would require an authoritative service and durable storage. Any content or balance change affecting replay must bump compatibility versions.
 
-Any balance, selection, mission, or event change that alters replay results must bump `RULESET_VERSION` or `DATASET_VERSION`. Incompatible or corrupt saves start a fresh mission with a visible notice. Storage failures leave the game playable and display a notice. Local saves are small, but not shared between browsers or devices.
+## Content and testing
 
-## Real-data ingestion extension
+NASA links support educational topics. Numerical costs, packing weights, safe-trip sequences, shelter points, crew-day durations, and weather schedules are fictional teaching rules. No credentials or external calls are needed. Keep any future live data ingestion outside the turn path with provenance, dates, validated schemas, and documented conversions.
 
-No NASA credentials or live ingestion are configured in this starter. Add a server-only adapter when there is a selected, reviewed source. Preserve:
+Unit tests exercise legal paths and actions through both full worlds, each minigame type, gates, knowledge/time costs, no repeated rewards, conditional events, replay, caps, final-day survival, spatial culling, picking, camera math, and home guidance. Browser checks cover WebGL, actual controls/dialogs, collection, task feedback, persistence, responsive layouts, and world transitions.
 
-- Source agency, endpoint, record identifier, observation date, and original link.
-- The schema/version of the normalized snapshot.
-- The mapping from measured source fields into invented event severity and resource changes.
-- Units, missing-data handling, assumptions, and educational review status.
-
-Fetch once during curation or through an independently cached refresh process. Retain the last good dataset and avoid updating the event deck halfway through a mission. Validate untrusted input before publication. Keep credentials on the server and check the chosen service's actual quota. Do not equate a flare classification with an astronaut's received radiation dose.
-
-OSDR content can support educational cards after review; image search results are optional presentation assets. Neither is a physics engine or a replacement for a balanced simulation.
-
-## Scaling choices
-
-The current state is small and updates once per decision. Profile first on the oldest intended classroom or mobile device. Suggested acceptance targets: under 100 ms from a click to resource feedback, no requests per turn, readable controls at 360 px, and correct save/reload behavior.
-
-PixiJS now renders the 2D world with on-demand frames, separately from React dashboard state. The current small map uses procedural Graphics; measure before choosing sprite atlases, spatial indexes, chunk culling, or workers for larger worlds. For cloud saves, add durable storage and explicit session handling. For realtime multiplayer, use an authoritative shared simulation and a deployment supporting persistent connections. Do not assume serverless request handlers retain state between calls.
-
-## Intentional MVP scope
-
-One Mars mission, six sample event templates, local saves, static scientific topic references, and an explorable WebGL isometric outpost with radius-three visibility and home guidance. No construction commands, continuous physics, live NASA observations, 3D scene, real physics, account system, leaderboard, analytics, audio, full offline installation, or multiplayer. These are extension points, not completed capabilities.
+This remains a local educational prototype. Child/educator playtesting and target-device performance measurement remain necessary. Construction, cloud saves, multiplayer, arbitrary 3D physics, and live NASA ingestion are not implemented.

@@ -11,6 +11,7 @@ export interface WorldRenderer {
 }
 
 export interface WorldRendererCallbacks {
+  onMoveComplete(position: GridPosition): void;
   onSelect(position: GridPosition): void;
   onMove(direction: GridPosition): void;
   onInteract(): void;

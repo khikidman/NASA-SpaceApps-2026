@@ -26,25 +26,33 @@ export function moveExplorer(world: WorldMap, state: ExplorerState, target: Grid
 
 /** Route only through the currently visible circle; do not navigate unseen cells. */
 export function findVisiblePath(world: WorldMap, start: GridPosition, target: GridPosition): GridPosition[] | null {
-  if (!walkable(world, start) || !inRenderRange(target, start) || !walkable(world, target)) return null;
+  return pathToAny(world, start, [target]);
+}
+
+/** One bounded BFS chooses the shortest visible approach to an occupied stop. */
+export function findInteractionPath(world: WorldMap, start: GridPosition, target: GridPosition): GridPosition[] | null {
+  if (!entityAt(world, target) || !inRenderRange(target, start)) return null;
+  return pathToAny(world, start, Object.values(DIRECTIONS).map((d) => ({ col: target.col + d.col, row: target.row + d.row })));
+}
+
+function pathToAny(world: WorldMap, start: GridPosition, targets: readonly GridPosition[]): GridPosition[] | null {
+  if (!walkable(world, start)) return null;
+  const goals = new Set(targets.filter((p) => walkable(world, p) && inRenderRange(p, start)).map(cellKey));
+  if (!goals.size) return null;
   const queue: GridPosition[] = [start];
   const parents = new Map<string, GridPosition | null>([[cellKey(start), null]]);
   for (let index = 0; index < queue.length; index++) {
     const current = queue[index];
-    if (cellKey(current) === cellKey(target)) {
+    if (goals.has(cellKey(current))) {
       const path: GridPosition[] = [];
       let step = current;
-      while (parents.get(cellKey(step))) {
-        path.push(step);
-        step = parents.get(cellKey(step))!;
-      }
+      while (parents.get(cellKey(step))) { path.push(step); step = parents.get(cellKey(step))!; }
       return path.reverse();
     }
     for (const direction of Object.values(DIRECTIONS)) {
       const next = { col: current.col + direction.col, row: current.row + direction.row };
       if (!parents.has(cellKey(next)) && inRenderRange(next, start) && walkable(world, next)) {
-        parents.set(cellKey(next), current);
-        queue.push(next);
+        parents.set(cellKey(next), current); queue.push(next);
       }
     }
   }

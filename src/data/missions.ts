@@ -1,15 +1,13 @@
-import type { MissionConfig } from "../game/types";
-
-export const MARS_MISSION: MissionConfig = {
-  id: "mars-outpost",
-  title: "A home on Mars",
-  location: "Mars",
-  duration: 15,
-  initialResources: { oxygen: 75, power: 70, shielding: 40, science: 0 },
-  dailyEffects: { oxygen: -6, power: 8 },
-  capacity: { oxygen: 100, power: 100, shielding: 100, science: 1000 },
+import type { MissionConfig, WorldId } from "../game/types";
+const common = {
+  duration: 7,
+  initialResources: { oxygen: 80, water: 75, power: 75, shielding: 40, science: 6 },
+  dailyEffects: { oxygen: -8, water: -6, power: -4 },
+  capacity: { oxygen: 100, water: 100, power: 100, shielding: 100, science: 10000 },
 };
-
-export const MISSIONS: Readonly<Record<string, MissionConfig>> = {
-  [MARS_MISSION.id]: MARS_MISSION,
-};
+export const MOON_MISSION: MissionConfig = { ...common, id: "moon", title: "Moon explorers", location: "Moon" };
+export const MARS_MISSION: MissionConfig = { ...common, id: "mars", title: "Mars explorers", location: "Mars" };
+export const MISSIONS: Readonly<Record<WorldId, MissionConfig>> = { moon: MOON_MISSION, mars: MARS_MISSION };
+export const DAILY_KNOWLEDGE_GOAL = 6;
+export const WORK_HOURS = 16;
+export const RESOURCE_NAMES = { oxygen: "Air", water: "Water", power: "Power", shielding: "Shield", science: "Stars" } as const;

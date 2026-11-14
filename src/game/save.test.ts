@@ -1,42 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { advanceTurn, canAfford, createGame, getChoices } from "./engine";
+import { applyAction, createGame } from "./engine";
 import { restoreGame, serializeGame } from "./save";
-
-describe("versioned mission saves", () => {
-  it("restores an in-progress mission with identical future behavior", () => {
-    let original = createGame(42);
-    for (let turn = 0; turn < 4; turn++) {
-      const choice = getChoices(original).find((entry) => canAfford(original.resources, entry))!;
-      original = advanceTurn(original, choice.id);
-    }
-    const restored = restoreGame(serializeGame(original));
-    expect(restored).toEqual(original);
-    const choice = getChoices(original).find((entry) => canAfford(original.resources, entry))!;
-    expect(advanceTurn(restored, choice.id)).toEqual(advanceTurn(original, choice.id));
+import { playDay } from "./test-helpers";
+describe("journey replay saves", () => {
+  it("restores position, collection, subtasks, scores, days, and future behavior", () => {
+    let game = createGame(42); game = playDay(game);
+    const restored = restoreGame(serializeGame(game));
+    expect(restored).toEqual(game); expect(playDay(restored)).toEqual(playDay(game));
   });
-
-  it("rejects malformed, oversized, incompatible, or unknown mission saves", () => {
+  it("restores a complete Moon-to-Mars journey and its discovery book", () => {
+    let game = createGame(5);
+    for (let i = 0; i < 7; i++) game = playDay(game);
+    expect(restoreGame(serializeGame(game))).toEqual(game);
+    game = applyAction(game, { type: "travel" });
+    for (let i = 0; i < 7; i++) game = playDay(game);
+    expect(restoreGame(serializeGame(game))).toEqual(game);
+  });
+  it("rejects malformed, incompatible, oversized, and illegal action histories", () => {
     const valid = JSON.parse(serializeGame(createGame(1)));
-    for (const raw of ["broken json", "null", "[]", " ".repeat(20_001), JSON.stringify({ ...valid, version: 99 }), JSON.stringify({ ...valid, datasetVersion: "old" }), JSON.stringify({ ...valid, rulesetVersion: 99 }), JSON.stringify({ ...valid, missionId: "unknown" }), JSON.stringify({ ...valid, missionId: "__proto__" }), JSON.stringify({ ...valid, missionId: "constructor" }), JSON.stringify({ ...valid, seed: -1 }), JSON.stringify({ ...valid, choices: [42] }), JSON.stringify({ ...valid, choices: ["invented-choice"] }), JSON.stringify({ ...valid, choices: Array(16).fill("make-oxygen") })]) {
-      expect(() => restoreGame(raw)).toThrow();
-    }
+    for (const raw of ["null", "oops", "[]", "x".repeat(1000001), ...[
+      { version: 99 }, { rulesetVersion: 1 }, { datasetVersion: "old" }, { seed: -1 }, { actions: [null] },
+      { actions: [{ type: "travel" }] }, { actions: [{ type: "unknown" }] },
+      { actions: [{ type: "move", position: { col: 0, row: 0 } }] },
+      { actions: Array(10001).fill({ type: "learn" }) },
+    ].map((patch) => JSON.stringify({ ...valid, ...patch }))]) expect(() => restoreGame(raw)).toThrow();
   });
-
-  it("ignores forged resource totals and reconstructs the state from legal actions", () => {
-    const initial = createGame(123);
-    const payload = { ...JSON.parse(serializeGame(initial)), resources: { oxygen: 9999, power: 9999, shielding: 9999, science: 9999 } };
-    expect(restoreGame(JSON.stringify(payload))).toEqual(initial);
-  });
-
-  it("restores a finished mission and rejects actions after its ending", () => {
-    let state = createGame(24);
-    while (state.status === "playing") {
-      const choice = getChoices(state).find((entry) => canAfford(state.resources, entry))!;
-      state = advanceTurn(state, choice.id);
-    }
-    expect(restoreGame(serializeGame(state))).toEqual(state);
-    const payload = JSON.parse(serializeGame(state));
-    payload.choices.push(state.history.at(-1)!.choiceId);
-    expect(() => restoreGame(JSON.stringify(payload))).toThrow();
+  it("ignores forged supplies, location, and unlock flags", () => {
+    const game = createGame(5);
+    const payload = { ...JSON.parse(serializeGame(game)), resources: { science: 99999 }, missionId: "mars", status: "won", position: { col: 1, row: 1 } };
+    expect(restoreGame(JSON.stringify(payload))).toEqual(game);
   });
 });

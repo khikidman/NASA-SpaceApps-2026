@@ -1,0 +1,4 @@
+{
+  "title": "Impact field",
+  "settings": { "baseColor": "#999895", "rimColor": "#ddd8c9", "floorColor": "#a8a79b", "shadowColor": "#454b45", "grain": 17, "craterDensity": 1.7, "craterScale": 1.2, "pebbleDensity": 1.5, "dustOpacity": 1, "trackOpacity": 0.6 }
+}

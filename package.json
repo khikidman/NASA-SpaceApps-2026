@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "lab": "next dev --port 3101",
+    "lab:promote": "node asset-lab/tools/promote.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",

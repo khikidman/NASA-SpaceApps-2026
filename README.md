@@ -1,97 +1,64 @@
-# Junior Astronaut Mission Trainer
+# Space Explorer: Moon to Mars
 
-A Next.js framework and playable starter for the NASA Space Apps project: manage a Mars outpost for 15 sols, balancing oxygen, power, shield reserve, and science.
-
-The outpost now uses a browser-only PixiJS WebGL renderer with a player-centered, simulated 3D isometric grid. React owns the dashboard; the spatial world and camera have separate modules.
+An educational browser game for ages 7–12. Explore the Moon for seven crew days, then fly to Mars for another seven. Collect supplies, solve two-step science challenges, prepare for conditional world events, and learn as much as possible while keeping the crew supplied.
 
 ## Run locally
 
-Requires Node.js 22.12+ (Node.js 24 LTS recommended) and npm.
+Requires Node.js 22.12+ and npm. No account or API key is needed.
 
 ```sh
 npm install
-npm run dev
+npm run dev -- --port 3100
 ```
 
-Open http://localhost:3000. No API key or account is required. The application does not load fonts, images, or data from external services during gameplay.
+Open [localhost:3100](http://localhost:3100). Gameplay does not request external images, fonts, or NASA data. NASA source links open only when selected.
 
 ```sh
-npm run check       # lint, types, simulation/save tests, production build
+npm run check   # lint, types, unit tests, production build
 npm run build
-npm start          # serve the production build
+npm start -- --port 3100
 ```
+
+## Play
+
+- Walk with arrows, WASD, touch direction buttons, or click/tap clear ground.
+- Click a stop to walk beside it, then press E / Enter or **Use stop**.
+- **+** supply stops collect air, water, power, or shield supplies once per day. **✦** discovery stops add knowledge stars.
+- **?** challenges include question cards, packing a bag under a space limit, and arranging steps in order. Each has two steps, free hints, and no penalty for an incorrect answer.
+- Earn at least six knowledge stars and complete one entire challenge each day. The bottom-center mission tray shows progress; **Rest** opens the night plans.
+- Every accepted challenge step has a fixed star cost and reward. Resource gains show green **+**; costs show red **−**, with words and signs as well as color.
+- Each day has 16 work hours, followed by 8 hours of rest. Walking is free. Night reports and decisions also cost stars, with a reflection reward shown separately.
+- Keep air, water, and power above zero. Supplies and challenges refill daily. World events depend on the world, day, and supply levels.
+- Finish Moon day 7 to unlock **Next stop: Mars!**. Travel refills tanks and carries your stars, total knowledge, and discovery book forward.
+- **My book** records discoveries and daily results. Spendable stars and total knowledge earned are separate.
+- Drag to pan, scroll/+ /− to zoom, and use Center player / Home to refit the view.
+
+## World and interface
+
+Both levels use one seeded 24×24 square-world generator. Shaded tile edges and buildings simulate 3D with a fixed isometric WebGL view. Moon terrain uses a seeded, detailed lunar regolith texture sheet: shaded impact craters, fine dust, scattered stones, rover ruts, boot marks, and faceted boulders. Forty-eight surface variants share one GPU texture sheet, built once per Moon renderer. Mars keeps its red terrain. Each world fades in when its renderer is ready, with reduced-motion support.
+
+Only a circular radius of five logical squares is rendered: `(col-playerCol)² + (row-playerRow)² <= 25`. There are at most 81 active ground squares. Incoming tiles rise and fade in; a small temporary set of departing tiles falls and fades out before disposal. Departing and hidden squares cannot be picked. A home arrow appears when the single home square is outside this range. The black starfield has independently varying, interpolated brightness. Clicked routes show waypoint trails and a pulsing destination. The astronaut walks smoothly, the camera tracks without per-step snapping, and graphics for overlapping tiles are reused. Animation pauses when hidden and respects reduced-motion preferences.
+
+Four compact supply bars and the spendable star balance sit in the top left. The title block, objective sidebar, coordinates, scan panel, and large navigation dock are removed. Three picture-based mission buttons sit at the bottom center, alongside daily star progress, remaining work hours, and Rest. Click a mission to approach its stop; an off-screen mission arrow guides you if it is outside the local circle.
+
+Supplies collect directly through a contextual action, with signed cost previews, animated bars, floating changes, and a brief world burst. Challenges use illustrated answer cards, a five-slot packing bag, and numbered sequence slots. Drag-and-drop and click/tap choices share the same engine validation; hints, facts, sources, and the discovery book remain available without interrupting the main play flow. Native dialogs retain keyboard focus containment, Escape dismissal, and internal scrolling. Touch layouts start at a closer camera zoom; zoom out to see more of the local circle. Camera and movement-pad options are tucked into the camera controls.
 
 ## Source layout
 
-```text
-src/
-  app/                     Next.js App Router pages and global styles
-    api/events/route.ts    Public, static snapshot of the curated dataset
-    about/page.tsx        Sources and scientific assumptions
-  components/              Reusable resource meters
-  data/                    Typed mission settings, events, source references
-  features/mission/        Dashboard and browser persistence integration
-  features/world/          React canvas lifecycle and mission-to-world adapter
-  game/                    Framework-independent simulation, types, save/replay
-  world/                   Grid data, projection, footprints, and tile picking
-  rendering/               WebGL adapter, scene graphics, camera, renderer port
-docs/
-  architecture.md          Boundaries, turn rules, and extension guidance
-```
+- `src/game`: pure action validation, costs, progression, survival, scores, and replay saves.
+- `src/data`: shared world settings, six two-step challenges, five supply actions, conditional events, and NASA sources.
+- `src/world`: shared map generation, grid math, movement, visibility, and picking.
+- `src/rendering`: PixiJS WebGL adapter, procedural graphics, camera, and home guidance.
+- `src/features/mission`: HUD, minigames, daily decisions, book, and persistence.
+- `src/features/world`: renderer lifecycle, routes, input, starfield, and world transition.
+- `/about`: scientific background and game assumptions. `/api/events`: static content snapshot.
 
-## Included
+See [architecture](docs/architecture.md) and [world architecture](docs/isometric-world.md).
 
-- Responsive mission dashboard, event decisions, a sol summary, and win/lose screens.
-- One 15-sol Mars mission and six illustrative event templates, each with three choices.
-- Seeded randomness, event eligibility, and no immediately repeated event.
-- Pure, immutable turn resolution with resource caps and affordability checks.
-- Versioned local saves restored by replaying validated choices.
-- An attribution page that distinguishes scientific background from invented game rules.
-- Unit tests covering simulation correctness, achievable missions, and save validation.
-- A seeded 24 × 24 square grid with a movable astronaut, volumetric tiles, empty squares, and interactive facilities.
-- A strict circular render radius of three squares: at most 29 ground squares and only their nearby contents are drawn.
-- One home-base square, with a screen-edge direction arrow and distance when it leaves the visible circle.
-- Arrow/WASD movement, click/tap-to-walk routes, touch movement controls, nearby-facility interaction, zoom, and player-centered camera controls.
-- WebGL context recovery, resize/DPR handling, on-demand rendering, and a readable unavailable-renderer state that leaves the mission playable.
-- Tests for projection/picking, camera transforms, map generation, and placement boundaries.
+## Saves and scope
 
-## World controls and scope
+One action-validated journey save restores movement, collection, task steps, days, resources, discoveries, and world unlocks. New saves use `space-explorer:journey:v2`; earlier prototype saves are left untouched. Saves are local to this browser/device. They are not an anti-cheat mechanism.
 
-Use the arrow keys or WASD to move one square at a time, or click/tap clear ground to walk a short route through visible squares. Rocks and occupied facility squares block movement. Select a facility and use it from an adjacent square, or press E / Enter to use a nearby facility. Touch controls provide the same movement and interaction actions.
+All costs, supply units, event timings, and work-day lengths are fictional game rules. Learning facts have linked NASA background; no live NASA observations are imported. This is not a radiation or life-support simulator. Full perspective 3D, construction, multiplayer, cloud saves, audio, and offline installation are outside this prototype.
 
-Only squares with `(col - playerCol)^2 + (row - playerRow)^2 <= 9` are rendered. This is a circle of radius three in the logical grid, not a 3 × 3 block or a screen-space circle. Out-of-range ground, rocks, and facilities are absent from the scene and cannot be picked. The player camera follows movement; zooming out never reveals hidden squares.
-
-Home base occupies one square. When its distance exceeds three squares, a HUD arrow points toward home and shows its distance. It disappears as soon as base reenters range. The arrow is guidance, not a teleport control.
-
-Scroll or use + / − to zoom, drag to pan, toggle Grid to show square boundaries, and use Center player (or Home on the keyboard) to reset the local view. The map has a fixed isometric projection and shaded extruded geometry to simulate 3D; it is not a rotating perspective camera or physics engine.
-
-Facility visits open a local information panel and are recorded once in an exploration log. They do not grant invented mission-resource rewards. Mission decisions below continue to control oxygen, power, shielding, and science. Player position and visits use an independently validated local save; the mission save format remains unchanged.
-
-The scene is rendered by WebGL. When WebGL is unavailable, the mission dashboard remains playable. Construction, resource production tied to spatial facilities, terrain elevation changes, and multiplayer remain future systems.
-
-## Game rules
-
-Read the event, select one action, then resolve the action, storm impact, event effects, daily upkeep, and survival check. Oxygen and power must both remain above zero at the end of the sol. Survive all 15 sols to win; science is your bonus score.
-
-Every sol consumes 6 oxygen and generates 8 power. Oxygen, power, and shielding are capped at 100. Shield reserve is consumed by storms; any impact beyond that reserve costs emergency oxygen. This relationship is a fictional game abstraction, not a radiation or life-support model.
-
-Progress is saved on this browser and device. No accounts, database, competitive score validation, multiplayer, or service worker are included. A loaded mission can continue without network requests, but loading the website offline is not yet supported.
-
-## NASA data status
-
-**The initial dataset contains authored training scenarios, not downloaded NASA observations.** Topic references are linked on `/about`. The scaffold does not implement live DONKI ingestion, OSDR processing, or a NASA Images integration. Never present sample events as actual historical observations.
-
-To add real data, curate a snapshot with original source URLs and dates, validate it, and document the conversion to game values. Keep refreshes off the turn path. See [architecture guidance](docs/architecture.md).
-
-## Develop next
-
-1. Review the educational content and play-test the resource economy with the intended age group.
-2. Add more reviewed event templates and mission objectives.
-3. Import a small, attributed historical NASA dataset with explicit conversion rules.
-4. Add a Moon ruleset with separate environment settings and eligible events.
-5. Add validated construction commands and version mutable facilities alongside the exploration save.
-6. Add sprite assets, richer facility actions, longer-range navigation, or hosted persistence when a feature needs them.
-
-Keep simulation changes in `src/game`, content changes in `src/data`, and UI changes in `src/features/mission`. Bump save compatibility versions when changing rules or event content. Do not put API keys in client components or public environment variables.
-
-Keep spatial rules in `src/world` and graphics/input in `src/rendering`. See [the isometric world architecture](docs/isometric-world.md) before adding tile or entity features.
+Content, reading level, and difficulty need playtesting with children and educators. Add worlds through shared configuration, tasks, and event rules; bump save compatibility versions when changing replay results.

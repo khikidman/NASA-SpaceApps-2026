@@ -1,26 +1,10 @@
 export const SOURCES = [
-  {
-    id: "donki",
-    name: "NASA DONKI",
-    url: "https://ccmc.gsfc.nasa.gov/tools/DONKI/",
-    description: "A source for future space-weather event curation. The sample storms are fictional, not downloaded observations.",
-  },
-  {
-    id: "mars",
-    name: "NASA Mars exploration",
-    url: "https://science.nasa.gov/mars/",
-    description: "Background reading for the Mars setting and educational content.",
-  },
-  {
-    id: "life-support",
-    name: "NASA life support systems",
-    url: "https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/",
-    description: "Background reading about supporting astronauts. Resource units and costs in this prototype are invented.",
-  },
+  { id: "moon", name: "NASA: Moon facts", url: "https://science.nasa.gov/moon/facts/", description: "Craters and the Moon’s very thin atmosphere." },
+  { id: "moonquakes", name: "NASA: Moonquakes", url: "https://science.nasa.gov/moon/moonquakes/", description: "How scientists study a shaking Moon." },
+  { id: "mars", name: "NASA: Mars facts", url: "https://science.nasa.gov/mars/facts/", description: "Rusty dust, a cold surface, and a thin atmosphere." },
+  { id: "mars-power", name: "NASA: Mars surface power", url: "https://www.nasa.gov/wp-content/uploads/2024/01/mars-surface-power-generation-challenges-and-considerations.pdf", description: "How dust affects sunlight and solar power." },
+  { id: "plants", name: "NASA: Growing plants in space", url: "https://science.nasa.gov/biological-physical/the-challenges-of-growing-plants-in-space/", description: "Plants need light, water, air, nutrients, and space to grow." },
+  { id: "radiation", name: "NASA: Protecting astronauts from space radiation", url: "https://science.nasa.gov/science-research/heliophysics/how-nasa-will-protect-astronauts-from-space-radiation-at-the-moon/", description: "Why future Moon explorers need protection." },
+  { id: "life-support", name: "NASA: Life support systems", url: "https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/", description: "Air, water, and equipment for astronauts. All game units are invented." },
 ] as const;
-
-export function getSource(id: string) {
-  const source = SOURCES.find((entry) => entry.id === id);
-  if (!source) throw new Error(`Unknown source: ${id}`);
-  return source;
-}
+export function getSource(id: string) { const source = SOURCES.find((s) => s.id === id); if (!source) throw new Error(`Unknown source: ${id}`); return source; }

@@ -1,99 +1,64 @@
 "use client";
-
-import { useEffect, useReducer } from "react";
-import { adjacent, createExplorer, findVisiblePath, interactWithFacility, moveExplorer, restoreExplorer, saveExplorer } from "@/world/exploration";
+import { useEffect, useReducer, useRef } from "react";
+import { adjacent, findInteractionPath, findVisiblePath, walkable } from "@/world/exploration";
 import { entityAt } from "@/world/map";
 import { inRenderRange } from "@/world/visibility";
-import type { ExplorerState, GridPosition, WorldMap } from "@/world/types";
-
-interface Session {
-  explorer: ExplorerState;
-  selected: GridPosition;
-  route: readonly GridPosition[];
-  ready: boolean;
-  notice: string;
-}
-type Action =
-  | { type: "hydrate"; explorer: ExplorerState; notice: string }
-  | { type: "move"; direction: GridPosition }
-  | { type: "select"; position: GridPosition }
-  | { type: "step" }
-  | { type: "interact" }
-  | { type: "dismiss" }
-  | { type: "storage-error" };
-
-function reduce(world: WorldMap, state: Session, action: Action): Session {
-  try {
-    switch (action.type) {
-      case "hydrate": return { ...state, explorer: action.explorer, selected: action.explorer.position, ready: true, notice: action.notice };
-      case "storage-error": return { ...state, notice: "Exploration progress cannot be saved in this browser." };
-      case "dismiss": return { ...state, explorer: { ...state.explorer, activeFacilityId: null } };
-      case "move": {
-        const position = { col: state.explorer.position.col + action.direction.col, row: state.explorer.position.row + action.direction.row };
-        const explorer = moveExplorer(world, state.explorer, position);
-        return { ...state, explorer, selected: position, route: [], notice: "" };
-      }
-      case "select": {
-        if (!inRenderRange(action.position, state.explorer.position)) return state;
-        if (entityAt(world, action.position)) return { ...state, selected: action.position, route: [], notice: "" };
-        const route = findVisiblePath(world, state.explorer.position, action.position);
-        return { ...state, selected: action.position, route: route ?? [], notice: route ? "" : "There is no clear route to that square." };
-      }
-      case "step": {
-        if (!state.route.length) return state;
-        const explorer = moveExplorer(world, state.explorer, state.route[0]);
-        return { ...state, explorer, route: state.route.slice(1),
-          selected: inRenderRange(state.selected, explorer.position) ? state.selected : explorer.position };
-      }
-      case "interact": {
-        const selectedEntity = entityAt(world, state.selected);
-        const entity = selectedEntity && adjacent(state.explorer.position, selectedEntity.position)
-          ? selectedEntity : world.entities.find((entry) => adjacent(state.explorer.position, entry.position));
-        if (!entity) return { ...state, notice: "Move next to a facility to use it." };
-        return { ...state, selected: entity.position,
-          explorer: interactWithFacility(world, state.explorer, entity.id), route: [], notice: "" };
-      }
-    }
-  } catch (error) {
-    return { ...state, route: [], notice: error instanceof Error ? error.message : "That move is unavailable." };
-  }
-}
-
-export function useExplorer(world: WorldMap) {
-  const [state, dispatch] = useReducer((session: Session, action: Action) => reduce(world, session, action), {
-    explorer: createExplorer(world), selected: world.spawn, route: [], ready: false, notice: "",
+import type { GridPosition, WorldMap } from "@/world/types";
+import type { GameAction, GameState } from "@/game/types";
+interface View { selected: GridPosition; route: readonly GridPosition[]; queued: GridPosition | null; pending: boolean; notice: string }
+export function useExplorer(world: WorldMap, game: GameState, act: (action: GameAction) => void, onOpen: (id: string) => void) {
+  const [view, update] = useReducer((state: View, patch: Partial<View>) => ({ ...state, ...patch }), {
+    selected: game.position, route: [], queued: null, pending: false, notice: "",
   });
-  const storageKey = `junior-astronaut:explorer:${world.id}:${world.seed}`;
-
+  const pending = useRef<GridPosition | null>(null);
+  const { position } = game;
+  function startStep(target: GridPosition, route: readonly GridPosition[]) {
+    if (pending.current || game.status !== "playing") return;
+    if (!adjacent(position, target) || !walkable(world, target)) { update({ route: [], queued: null, notice: "Find a clear path around the rocks." }); return; }
+    pending.current = target;
+    update({ route, queued: null, pending: true, notice: "" });
+    act({ type: "move", position: target });
+  }
   useEffect(() => {
-    let explorer = createExplorer(world);
-    let notice = "";
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        try { explorer = restoreExplorer(world, raw); }
-        catch { notice = "Your exploration save was reset. You are beside home base."; }
-      }
-    } catch { notice = "Exploration progress cannot be saved in this browser."; }
-    dispatch({ type: "hydrate", explorer, notice });
-  }, [world, storageKey]);
-
-  useEffect(() => {
-    if (!state.ready) return;
-    try { localStorage.setItem(storageKey, saveExplorer(world, state.explorer)); }
-    catch { dispatch({ type: "storage-error" }); }
-  }, [world, storageKey, state.explorer, state.ready]);
-
-  useEffect(() => {
-    if (!state.ready || !state.route.length) return;
-    const timer = setTimeout(() => dispatch({ type: "step" }), 150);
+    if (pending.current || game.status !== "playing" || (!view.route.length && !view.queued)) return;
+    // The visual completion callback drives the next step. No repeating React movement timer.
+    const timer = setTimeout(() => {
+      const target = view.queued ? { col: position.col + view.queued.col, row: position.row + view.queued.row } : view.route[0];
+      if (!target || pending.current) return;
+      if (!adjacent(position, target) || !walkable(world, target)) { update({ route: [], queued: null, notice: "That square is blocked. Try another direction." }); return; }
+      pending.current = target;
+      update({ route: view.queued ? [] : view.route.slice(1), queued: null, pending: true, notice: "", ...(view.queued ? { selected: target } : {}) });
+      act({ type: "move", position: target });
+    }, 0);
     return () => clearTimeout(timer);
-  }, [state.ready, state.route]);
-
-  return { ...state,
-    move: (direction: GridPosition) => dispatch({ type: "move", direction }),
-    select: (position: GridPosition) => dispatch({ type: "select", position }),
-    interact: () => dispatch({ type: "interact" }),
-    dismiss: () => dispatch({ type: "dismiss" }),
-  };
+  }, [view.route, view.queued, view.pending, position, world, game.status, act]);
+  function complete(at: GridPosition) {
+    if (pending.current?.col !== at.col || pending.current?.row !== at.row) return;
+    pending.current = null; update({ pending: false });
+  }
+  function select(target: GridPosition) {
+    if (game.status !== "playing" || !inRenderRange(target, position)) return;
+    const node = entityAt(world, target);
+    const route = node ? findInteractionPath(world, position, target) : findVisiblePath(world, position, target);
+    update({ selected: target, route: route ?? [], queued: null,
+      notice: route ? "" : "Find a clear path around the rocks." });
+  }
+  function move(direction: GridPosition) {
+    if (game.status !== "playing") return;
+    if (pending.current) { update({ route: [], queued: direction, notice: "" }); return; }
+    const target = { col: position.col + direction.col, row: position.row + direction.row };
+    update({ route: [], queued: null, selected: target });
+    if (!walkable(world, target)) { update({ selected: position, notice: "That square is blocked. Try another direction." }); return; }
+    startStep(target, []);
+  }
+  function interact() {
+    if (game.status !== "playing" || pending.current) return;
+    const selected = entityAt(world, view.selected);
+    const node = selected && adjacent(position, selected.position) ? selected : world.entities.find((n) => adjacent(position, n.position));
+    if (!node) { update({ notice: "Walk beside a stop to use it." }); return; }
+    update({ selected: node.position, route: [], queued: null, notice: "" }); onOpen(node.id);
+  }
+  return { ...view, selected: inRenderRange(view.selected, position) ? view.selected : position,
+    explorer: { position, steps: game.steps, visitedFacilities: [...game.collectedNodes, ...Object.keys(game.taskProgress)], activeFacilityId: null },
+    ready: true, move, select, interact, complete };
 }

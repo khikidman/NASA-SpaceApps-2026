@@ -1,110 +1,41 @@
-import type { MissionEvent } from "../game/types";
-
-// Bump this and RULESET_VERSION whenever content changes would invalidate a replay.
-export const DATASET_VERSION = "training-1";
-export const DATASET_KIND = "illustrative-training-scenarios";
-
+import type { GameState, MissionEvent } from "../game/types";
+export const DATASET_VERSION = "learning-journey-2";
+export const DATASET_KIND = "authored-educational-scenarios";
 export const EVENTS: readonly MissionEvent[] = [
-  {
-    id: "settle-in",
-    title: "Make the outpost your home",
-    category: "operations",
-    minDay: 1,
-    description: "The habitat is running smoothly. Where will you put your team's energy today?",
-    effects: {},
-    radiation: 0,
-    fact: "Astronauts need systems that supply breathable air, clean water, and a comfortable place to live.",
-    sourceId: "life-support",
-    choices: [
-      { id: "make-oxygen", label: "Refill the air tanks", description: "Use electricity to build an oxygen reserve.", effects: { oxygen: 20, power: -12 } },
-      { id: "study-rocks", label: "Study a rock sample", description: "Spend supplies to learn something new.", effects: { science: 12, oxygen: -3, power: -10 } },
-      { id: "tune-panels", label: "Tune the solar panels", description: "A short maintenance trip brings in more power.", effects: { oxygen: -3, power: 18 } },
-    ],
-  },
-  {
-    id: "greenhouse",
-    title: "A little green on the red planet",
-    category: "science",
-    minDay: 1,
-    description: "Your growing experiment is ready for attention. Keep the crew supplied or give the plants extra care.",
-    effects: {},
-    radiation: 0,
-    fact: "Experiments help researchers learn how living things respond to space environments.",
-    sourceId: "mars",
-    choices: [
-      { id: "air-reserve", label: "Top up life support", description: "Give the habitat's air system priority.", effects: { oxygen: 18, power: -10 } },
-      { id: "plant-study", label: "Run the plant experiment", description: "Use the grow lights to collect science.", effects: { science: 16, oxygen: -2, power: -14 } },
-      { id: "energy-reserve", label: "Charge the batteries", description: "Pause the experiment and save energy.", effects: { power: 16, science: -2 } },
-    ],
-  },
-  {
-    id: "solar-alert",
-    title: "Space-weather alert",
-    category: "weather",
-    minDay: 3,
-    description: "A fictional solar storm is approaching. After your choice, shield reserve absorbs 18 impact points. Any overflow uses emergency oxygen.",
-    effects: {},
-    radiation: 18,
-    fact: "Solar energetic particles can create radiation hazards. Mission teams monitor space weather to help protect astronauts.",
-    sourceId: "donki",
-    choices: [
-      { id: "reinforce", label: "Strengthen the shelter", description: "Use energy and air to add shielding before the storm.", effects: { shielding: 24, power: -14, oxygen: -2 } },
-      { id: "shelter-refill", label: "Stock the shelter with air", description: "Build an air reserve and rely on your existing shields.", effects: { oxygen: 20, power: -12 } },
-      { id: "observe", label: "Collect instrument readings", description: "Earn science while relying on your existing shields.", effects: { science: 20, power: -10, oxygen: -3 } },
-    ],
-  },
-  {
-    id: "dusty-panels",
-    title: "Dust on the solar panels",
-    category: "equipment",
-    minDay: 3,
-    description: "Dust has reduced today's energy supply. The outpost will lose 12 power after your choice.",
-    effects: { power: -12 },
-    radiation: 0,
-    fact: "Dust can affect solar-powered equipment on Mars. Engineers plan for changing energy supplies.",
-    sourceId: "mars",
-    choices: [
-      { id: "clean-panels", label: "Clean the panels", description: "Spend air on a maintenance trip to recover power.", effects: { oxygen: -5, power: 24 } },
-      { id: "indoor-air", label: "Focus on the air tanks", description: "Stay inside and use stored electricity to make oxygen.", effects: { oxygen: 22, power: -12 } },
-      { id: "dust-study", label: "Measure the dust", description: "Accept the power loss and collect science.", effects: { science: 15, oxygen: -2, power: -3 } },
-    ],
-  },
-  {
-    id: "air-filter",
-    title: "An air filter needs help",
-    category: "equipment",
-    minDay: 5,
-    description: "A filter fault will use 8 extra oxygen today. Choose how to respond before the daily update.",
-    effects: { oxygen: -8 },
-    radiation: 0,
-    fact: "Life-support equipment needs maintenance. Keeping spare supplies gives a crew more options when something breaks.",
-    sourceId: "life-support",
-    choices: [
-      { id: "replace-filter", label: "Service the air system", description: "Use power to restore a healthy air reserve.", effects: { oxygen: 30, power: -16 } },
-      { id: "reserve-power", label: "Protect the power supply", description: "Rely on stored air while charging the batteries.", effects: { power: 20, oxygen: -2 } },
-      { id: "inspect-filter", label: "Investigate the fault", description: "Learn from the failure, using some supplies.", effects: { science: 18, power: -6, oxygen: -2 } },
-    ],
-  },
-  {
-    id: "rover-discovery",
-    title: "The rover spotted something",
-    category: "science",
-    minDay: 5,
-    description: "An interesting rock formation is nearby. Take a science opportunity or prepare the habitat for tomorrow.",
-    effects: {},
-    radiation: 0,
-    fact: "Robotic missions study Martian rocks to learn about the planet's history and past environments.",
-    sourceId: "mars",
-    choices: [
-      { id: "rover-trip", label: "Investigate the discovery", description: "Spend air and energy on a science expedition.", effects: { science: 25, oxygen: -8, power: -15 } },
-      { id: "habitat-air", label: "Prepare more oxygen", description: "Build supplies for a future expedition.", effects: { oxygen: 20, power: -12 } },
-      { id: "habitat-shield", label: "Prepare the storm shelter", description: "Spend supplies to strengthen your shield reserve.", effects: { shielding: 20, power: -8, oxygen: -2 } },
-    ],
-  },
+  { id: "quiet", title: "A peaceful evening", description: "Your team is ready to rest. How will you help the base tonight?", fact: "Space crews need supplies, careful planning, and rest as well as discoveries.", sourceId: "life-support", effects: {}, radiation: 0, choices: [
+    { id: "recycle", label: "Recycle water", description: "Run the water cleaner while the crew rests.", effects: { water: 10, power: -5 } },
+    { id: "notes", label: "Send our discoveries", description: "Use the radio to share a little extra science.", effects: { science: 3, power: -5 } },
+  ] },
+  { id: "water-low", title: "Water check!", description: "Our water meter is low. Let’s choose a plan before bed.", fact: "Space-station equipment recycles water so astronauts can use it again.", sourceId: "life-support", effects: {}, radiation: 0, choices: [
+    { id: "clean", label: "Clean extra water", description: "Use more power to refill the tank.", effects: { water: 20, power: -8 } },
+    { id: "careful", label: "Use the small cleaner", description: "Save power and clean a smaller amount.", effects: { water: 12, power: -3 } },
+  ] },
+  { id: "power-low", title: "Battery check!", description: "Our batteries are getting low. Which backup should we use?", fact: "Spacecraft use power to run equipment that helps their crews live and work.", sourceId: "life-support", effects: {}, radiation: 0, choices: [
+    { id: "backup", label: "Use the backup kit", description: "Trade shelter supplies for a battery boost.", effects: { power: 18, shielding: -6 } },
+    { id: "small", label: "Use a small backup", description: "Get less power and keep more shelter supplies.", effects: { power: 12, shielding: -2 } },
+  ] },
+  { id: "moonquake", title: "The Moon gave a wobble!", description: "A small moonquake was recorded. Choose what the team checks tonight.", fact: "The Moon has quakes. Instruments left by Apollo astronauts helped scientists study them.", sourceId: "moonquakes", effects: { power: -2 }, radiation: 0, choices: [
+    { id: "secure", label: "Check the shelter", description: "Use tools to strengthen our game’s shelter.", effects: { shielding: 10, power: -5 } },
+    { id: "listen", label: "Read the shake sensor", description: "Learn more, using a little air and power.", effects: { science: 4, oxygen: -3, power: -3 } },
+  ] },
+  { id: "sun-alert", title: "A message about the Sun", description: "Our game’s Sun alert is on. Shelter supplies help protect the team.", fact: "Radiation from space is a challenge for astronauts beyond Earth’s protective environment.", sourceId: "radiation", effects: {}, radiation: 12, choices: [
+    { id: "shelter", label: "Prepare the shelter", description: "Use power to add protection before the alert.", effects: { shielding: 15, power: -7 } },
+    { id: "observe", label: "Study from inside", description: "Use existing protection and collect readings.", effects: { science: 4, power: -4 } },
+  ] },
+  { id: "mars-dust", title: "Dusty skies on Mars", description: "Dust is blocking some sunlight. The base will use 8 extra power tonight.", fact: "Mars has dust storms. Dust can reduce the sunlight that reaches solar panels.", sourceId: "mars-power", effects: { power: -8 }, radiation: 0, choices: [
+    { id: "panels", label: "Care for the panels", description: "Spend air on a panel check to recover some power.", effects: { power: 14, oxygen: -5 } },
+    { id: "weather", label: "Study the dust", description: "Keep working indoors and learn from the readings.", effects: { science: 4, power: -2 } },
+  ] },
 ];
-
 export function getEvent(id: string): MissionEvent {
-  const event = EVENTS.find((entry) => entry.id === id);
-  if (!event) throw new Error(`Unknown event: ${id}`);
+  const event = EVENTS.find((e) => e.id === id);
+  if (!event) throw new Error("Unknown evening event.");
   return event;
+}
+export function getDailyEvent(state: GameState): MissionEvent {
+  const id = state.resources.water < 25 ? "water-low" : state.resources.power < 30 ? "power-low"
+    : state.missionId === "moon" && [2, 5].includes(state.day) ? "moonquake"
+    : state.missionId === "mars" && [2, 5].includes(state.day) ? "mars-dust"
+    : [3, 6].includes(state.day) && state.resources.shielding < 35 ? "sun-alert" : "quiet";
+  return getEvent(id);
 }

@@ -1,7 +1,7 @@
 import { footprintPolygon } from "./isometric";
 import type { Bounds, GridPosition, WorldMap } from "./types";
 
-export const RENDER_RADIUS = 3;
+export const RENDER_RADIUS = 5;
 export const cellKey = (position: GridPosition) => `${position.col},${position.row}`;
 
 /** A Euclidean circle in the square grid, including its boundary and center. */

@@ -1,3 +1,4 @@
+import type { ResourceDelta } from "../game/types";
 export interface Point {
   x: number;
   y: number;
@@ -28,7 +29,10 @@ export interface WorldTile extends GridPosition {
   variant: number;
 }
 
+export type NodeInteraction = { type: "base" } | { type: "resource" } | { type: "task"; taskId: string };
+
 export interface WorldEntity {
+  interaction: NodeInteraction;
   id: string;
   kind: FacilityKind;
   name: string;
@@ -39,6 +43,8 @@ export interface WorldEntity {
 }
 
 export interface WorldMap {
+  levelId: "moon" | "mars";
+  location: "Moon" | "Mars";
   id: string;
   seed: number;
   width: number;
@@ -59,11 +65,18 @@ export interface ExplorerState {
 export interface WorldRenderState {
   player: GridPosition;
   selected: GridPosition;
+  route?: readonly GridPosition[];
 }
+
+export interface InteractionFeedback { id: number; effects: ResourceDelta; nodeId?: string; success: boolean; kind: string; message: string }
+export interface MissionTarget { nodeId: string; request: number; world: "moon" | "mars" }
 
 /** Presentation only. The renderer cannot change mission resources. */
 export interface WorldPresentation {
   lowPower: boolean;
   lowOxygen: boolean;
   missionEnded: boolean;
+  usedNodeIds?: readonly string[];
+  feedback?: InteractionFeedback | null;
+  objectiveNodeId?: string;
 }

@@ -7,14 +7,14 @@ describe("home base navigation marker", () => {
   const camera = { x: 420, y: -300, zoom: 1.2 };
 
   it("is hidden within the render radius and appears immediately beyond it", () => {
-    expect(homeGuidance({ col: 12, row: 15 }, home, camera, 1000, 510)).toBeNull();
-    expect(homeGuidance({ col: 14, row: 14 }, home, camera, 1000, 510)).toBeNull();
-    expect(homeGuidance({ col: 13, row: 15 }, home, camera, 1000, 510)).not.toBeNull();
-    expect(homeGuidance({ col: 12, row: 16 }, home, camera, 1000, 510)?.distance).toBe(4);
+    expect(homeGuidance({ col: 12, row: 17 }, home, camera, 1000, 510)).toBeNull();
+    expect(homeGuidance({ col: 15, row: 16 }, home, camera, 1000, 510)).toBeNull();
+    expect(homeGuidance({ col: 13, row: 17 }, home, camera, 1000, 510)).not.toBeNull();
+    expect(homeGuidance({ col: 12, row: 18 }, home, camera, 1000, 510)?.distance).toBe(6);
   });
 
   it("points back home in every direction and stays in the viewport on desktop and mobile", () => {
-    for (const offset of [{ col: 4, row: 0 }, { col: -4, row: 0 }, { col: 0, row: 4 }, { col: 0, row: -4 }, { col: 4, row: 4 }, { col: -4, row: -4 }]) {
+    for (const offset of [{ col: 6, row: 0 }, { col: -6, row: 0 }, { col: 0, row: 6 }, { col: 0, row: -6 }, { col: 6, row: 6 }, { col: -6, row: -6 }]) {
       const player = { col: home.col + offset.col, row: home.row + offset.row };
       const projectedDelta = gridToWorld({ col: -offset.col, row: -offset.row });
       for (const [width, height] of [[1158, 510], [310, 350]]) {

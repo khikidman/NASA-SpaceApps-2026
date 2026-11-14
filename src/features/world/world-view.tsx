@@ -2,43 +2,48 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorldRenderer } from "@/rendering/types";
-import { entityAt, placementIssue, tileAt } from "@/world/map";
-import { adjacent, DIRECTIONS, gridDistance } from "@/world/exploration";
-import { inRenderRange, RENDER_RADIUS, visibleTiles } from "@/world/visibility";
-import type { FacilityKind, Terrain, WorldMap, WorldPresentation } from "@/world/types";
+import type { GameAction, GameState } from "@/game/types";
+import { RESOURCE_NODES, getTask } from "@/data/tasks";
+import { GameArt, type Art } from "@/components/game-art";
+import { ResourceEffects } from "@/components/resource-effects";
+import { canAfford } from "@/game/engine";
+import { MISSION_VISUALS } from "@/features/mission/visual-content";
+import { HudIcon } from "@/components/hud-icon";
+import { entityAt } from "@/world/map";
+import { adjacent, DIRECTIONS } from "@/world/exploration";
+import { inRenderRange } from "@/world/visibility";
+import type { WorldMap, WorldPresentation, MissionTarget } from "@/world/types";
 import { useExplorer } from "./use-explorer";
+import { Starfield } from "./starfield";
 
 type ViewStatus = "loading" | "ready" | "unavailable" | "recovering";
 
-const TERRAIN_NAMES: Record<Terrain, string> = {
-  sand: "Open terrain", rock: "Rocky terrain", path: "Supply route", pad: "Facility pad",
-};
-const FACILITY_DESCRIPTIONS: Record<FacilityKind, string> = {
-  habitat: "Your home base: crew quarters, supplies, and mission control.",
-  solar: "A solar array for collecting energy from sunlight.",
-  oxygen: "Equipment for the outpost's breathable air supply.",
-  lab: "A place to study samples and make discoveries.",
-  shield: "A protected space for the crew during space-weather alerts.",
-};
-
-export function WorldView({ world, presentation }: { world: WorldMap; presentation: WorldPresentation }) {
-  const session = useExplorer(world);
+export function WorldView({ world, presentation, game, act, onOpen, target }: { world: WorldMap; presentation: WorldPresentation; game: GameState; act: (action: GameAction) => void; onOpen: (id: string) => void; target: MissionTarget | null }) {
+  const session = useExplorer(world, game, act, onOpen);
   const { explorer, selected, ready: explorerReady, move, select } = session;
   const host = useRef<HTMLDivElement>(null);
   const renderer = useRef<WorldRenderer | null>(null);
   const latestPresentation = useRef(presentation);
   const latestGrid = useRef(true);
-  const renderState = useMemo(() => ({ player: explorer.position, selected }), [explorer.position, selected]);
+  const renderState = useMemo(() => ({ player: explorer.position, selected, route: session.route }), [explorer.position, selected, session.route]);
   const latestRenderState = useRef(renderState);
   const movement = useRef(move);
   const selection = useRef(select);
   const interaction = useRef(session.interact);
+  const completion = useRef(session.complete);
   const [status, setStatus] = useState<ViewStatus>("loading");
   const [retry, setRetry] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [gridVisible, setGridVisible] = useState(true);
+  const [padVisible, setPadVisible] = useState(false);
+  const requested = useRef<MissionTarget | null>(null);
+  useEffect(() => {
+    if (!target || status !== "ready" || requested.current === target) return;
+    const node = world.entities.find((n) => n.id === target.nodeId);
+    if (node && inRenderRange(node.position, game.position)) { requested.current = target; selection.current(node.position); }
+  }, [target, status, world, game.position]);
 
-  useEffect(() => { movement.current = move; selection.current = select; interaction.current = session.interact; });
+  useEffect(() => { movement.current = move; selection.current = select; interaction.current = session.interact; completion.current = session.complete; });
   useEffect(() => {
     latestRenderState.current = renderState;
     renderer.current?.setExplorer(renderState);
@@ -64,6 +69,7 @@ export function WorldView({ world, presentation }: { world: WorldMap; presentati
     void import("@/rendering/pixi-world-renderer").then(async ({ createWorldRenderer }) => {
       if (controller.signal.aborted) return;
       instance = await createWorldRenderer(element, world, latestRenderState.current, {
+        onMoveComplete: (position) => completion.current(position),
         onSelect: (position) => selection.current(position),
         onMove: (direction) => movement.current(direction),
         onInteract: () => interaction.current(),
@@ -76,6 +82,8 @@ export function WorldView({ world, presentation }: { world: WorldMap; presentati
       instance.setExplorer(latestRenderState.current);
       instance.setGridVisible(latestGrid.current);
       setStatus("ready");
+      completion.current(latestRenderState.current.player);
+      if (!document.querySelector("dialog[open]")) element.querySelector("canvas")?.focus({ preventScroll: true });
     }).catch(() => {
       if (!controller.signal.aborted) setStatus("unavailable");
     });
@@ -87,63 +95,54 @@ export function WorldView({ world, presentation }: { world: WorldMap; presentati
     };
   }, [world, retry, explorerReady]);
 
-  const tile = tileAt(world, selected)!;
-  const entity = entityAt(world, selected);
-  const openGround = placementIssue(world, selected, { width: 1, height: 1 }) === null;
   const ready = status === "ready" && explorerReady;
-  const visible = visibleTiles(world, explorer.position);
-  const homeVisible = inRenderRange(world.home, explorer.position);
-  const canInteract = !!entity && adjacent(explorer.position, entity.position);
-  const activeFacility = world.entities.find((entry) => entry.id === explorer.activeFacilityId);
-  const nearbyFacility = world.entities.some((entry) => adjacent(explorer.position, entry.position));
-  const missionStatus = presentation.missionEnded ? "Mission archived" : presentation.lowPower
-    ? "Power running low" : presentation.lowOxygen ? "Oxygen running low" : "Crew on station";
+  const selectedNode = entityAt(world, selected);
+  const node = selectedNode ?? world.entities.find((entry) => entry.interaction.type !== "base" && adjacent(explorer.position, entry.position));
+  const canInteract = !!node && adjacent(explorer.position, node.position) && !session.pending;
+  const supply = node?.interaction.type === "resource" ? RESOURCE_NODES[node.id] : undefined;
+  const task = node?.interaction.type === "task" ? getTask(game.missionId, node.interaction.taskId) : undefined;
+  const used = !!node && (game.collectedNodes.includes(node.id) || !!task && (game.taskProgress[task.id] ?? 0) >= task.steps.length);
+  const full = !!supply && game.resources[supply.resource] >= (supply.resource === "science" ? 10000 : 100);
+  const enough = !supply || canAfford(game.resources, supply.effects) && game.timeLeft >= supply.hours;
+  const nodeArt: Art = task ? MISSION_VISUALS[task.id].art : supply ? ({ oxygen: "air", water: "water", power: "solar", shielding: "shield", science: "star" } as const)[supply.resource] : "home";
+  const label = task ? MISSION_VISUALS[task.id].label : supply ? ({ oxygen: "Air", water: "Water", power: "Power", shielding: "Shield", science: "Discovery" } as const)[supply.resource] : "Home";
+  const actual = supply ? Object.fromEntries(Object.entries(supply.effects).map(([key, value]) => [key, value > 0 ? Math.min(value, (key === "science" ? 10000 : 100) - game.resources[key as keyof typeof game.resources]) : value])) : {};
+
+  function worldAction(action: () => void) {
+    action();
+    if (!document.querySelector("dialog[open]")) host.current?.querySelector("canvas")?.focus({ preventScroll: true });
+  }
 
   return (
-    <section className="world-section panel" aria-labelledby="world-title">
-      <header className="world-header">
-        <div><p className="eyebrow">SURFACE EXPLORATION / RANGE {RENDER_RADIUS}</p><h2 id="world-title">One small step.</h2></div>
-        <div className="world-toolbar" role="group" aria-label="World view controls">
-          <button type="button" onClick={() => renderer.current?.zoomBy(1 / 1.2)} disabled={!ready} aria-label="Zoom out">−</button>
-          <output aria-label="World zoom">{Math.round(zoom * 100)}%</output>
-          <button type="button" onClick={() => renderer.current?.zoomBy(1.2)} disabled={!ready} aria-label="Zoom in">+</button>
-          <span className="toolbar-divider" />
-          <button type="button" className="world-text-control" onClick={() => setGridVisible((visible) => !visible)} disabled={!ready} aria-pressed={gridVisible}>Grid</button>
-          <button type="button" className="world-text-control" onClick={() => renderer.current?.fit()} disabled={!ready}>Center player</button>
-        </div>
-      </header>
-
-      <div className="world-stage">
+    <section className="world-section" aria-labelledby="world-title">
+      <h2 id="world-title" className="sr-only">{world.location} exploration world</h2>
+      <div className="world-stage" data-ready={ready}>
+        <Starfield seed={world.seed} />
         <div className="world-viewport" ref={host} />
-        <div className="world-top-overlay" aria-hidden="true"><span>EXPLORER / MARS</span><span className="world-compass">N ↗</span></div>
-        <div className="world-bottom-overlay" aria-hidden="true"><span>{visible.length} NEARBY SQUARES</span><span>3-SQUARE RADIUS</span></div>
         {!ready && <div className="world-loading" role="status">
           <span className="world-loading-mark" aria-hidden="true">✦</span>
-          <strong>{status === "loading" ? "Opening your outpost…" : status === "recovering" ? "Reconnecting the world view…" : "The world view is unavailable."}</strong>
-          {status !== "loading" && <><p>You can continue your mission below.</p><button className="primary-button" type="button" onClick={() => { setStatus("loading"); setRetry((value) => value + 1); }}>Retry world view</button></>}
+          <strong>{status === "loading" ? `Landing on ${world.levelId === "moon" ? "the Moon" : "Mars"}…` : status === "recovering" ? "Reconnecting the world view…" : "The world view is unavailable."}</strong>
+          {status !== "loading" && <><p>Your mission controls are still available.</p><button className="primary-button" type="button" onClick={() => { setStatus("loading"); setRetry((value) => value + 1); }}>Retry world view</button></>}
         </div>}
       </div>
 
-      <div className="explorer-controls">
-        <div className="explorer-position"><p className="eyebrow">YOUR ASTRONAUT</p><strong data-player-position={`${explorer.position.col},${explorer.position.row}`}>Square {explorer.position.col} / {explorer.position.row}</strong><p>{explorer.steps} steps · {explorer.visitedFacilities.length} facilities visited</p></div>
-        <div className="movement-pad" role="group" aria-label="Move astronaut">
-          {([['west', '↖'], ['north', '↗'], ['south', '↙'], ['east', '↘']] as const).map(([direction, arrow]) => <button key={direction} type="button" disabled={!ready || !!activeFacility} onClick={() => move(DIRECTIONS[direction])} aria-label={`Move ${direction}`}>{arrow}</button>)}
-        </div>
-        <button type="button" className="primary-button nearby-interact" disabled={!ready || !nearbyFacility} onClick={session.interact}>Use nearby facility <span aria-hidden="true">E</span></button>
-        <p className="home-status" role="status">{homeVisible ? "⌂ Home base is nearby" : `⌂ Home base: ${gridDistance(explorer.position, world.home).toFixed(1)} squares away — follow the arrow`}</p>
+      <div className="world-toolbar minimal-camera" role="group" aria-label="World view controls">
+        <button type="button" disabled={!ready} onClick={() => worldAction(() => renderer.current?.zoomBy(1.2))} aria-label="Zoom in">+</button>
+        <button type="button" disabled={!ready} onClick={() => worldAction(() => renderer.current?.zoomBy(1 / 1.2))} aria-label="Zoom out">−</button>
+        <button type="button" disabled={!ready} onClick={() => worldAction(() => renderer.current?.fit())} aria-label="Center player"><HudIcon name="target" size={20} /></button>
+        <details className="extra-camera"><summary aria-label="More controls">···</summary><button type="button" disabled={!ready} aria-pressed={gridVisible} onClick={() => worldAction(() => setGridVisible((value) => !value))} aria-label="Toggle grid"><HudIcon name="grid" size={18} /></button><button type="button" aria-pressed={padVisible} onClick={() => setPadVisible((v) => !v)} aria-label="Movement controls">✥</button></details>
+        <output className="sr-only" aria-label="World zoom">{Math.round(zoom * 100)}%</output>
       </div>
+      {padVisible && <div className="touch-pad" role="group" aria-label="Move astronaut">{([['west', '↖'], ['north', '↗'], ['south', '↙'], ['east', '↘']] as const).map(([direction, arrow]) => <button key={direction} type="button" disabled={!ready} onClick={() => worldAction(() => move(DIRECTIONS[direction]))} aria-label={`Move ${direction}`}>{arrow}</button>)}</div>}
+      {node && <aside className={`context-action ${canInteract ? "in-reach" : "on-way"}`} aria-label="Nearby action">
+        <GameArt name={used ? "check" : nodeArt} size={42} /><div className="context-summary"><strong>{label}</strong>{supply && !used && <ResourceEffects effects={actual} hours={supply.hours} compact />}{!canInteract && <span className="walking-dots" aria-label="Walk beside this stop"><i /><i /><i /></span>}</div>
+        <button type="button" className="context-use" disabled={!ready || !canInteract || used || full || !enough || game.status !== "playing"} onClick={() => worldAction(session.interact)} aria-label={task ? `Play ${task.title}` : supply ? `Collect ${label}` : "Open night plan"}>{used ? "✓" : full ? "Full" : !enough ? "Need supplies" : supply ? "Collect" : task ? "Play" : "Rest"}<kbd>E</kbd></button>
+      </aside>}
+      <p className="sr-only" id="world-selection" aria-live="polite" data-player-position={`${explorer.position.col},${explorer.position.row}`}>{node?.name ?? "Clear ground"}. Square {explorer.position.col}, {explorer.position.row}.</p>
+      <p className="sr-only" id="world-controls-help">Click a stop to walk beside it. Use its action button or E to interact. Arrow keys or WASD move. Drag to pan, scroll to zoom.</p>
+      {session.notice && <p className="navigation-hint" role="status">{session.notice}</p>}
 
-      <div className="world-inspector" id="world-selection" aria-live="polite" aria-atomic="true">
-        <span className="tile-coordinate">TILE {String(selected.col).padStart(2, "0")} / {String(selected.row).padStart(2, "0")}</span>
-        <div><h3>{entity?.name ?? TERRAIN_NAMES[tile.terrain]}</h3><p>{entity ? FACILITY_DESCRIPTIONS[entity.kind] : openGround ? "Empty square. Click clear ground to walk there." : tile.terrain === "path" ? "An empty, walkable square on the supply route." : "Rocks block this square."}</p>{entity && !canInteract && <p>Stand next to this facility to use it.</p>}</div>
-        {entity ? <button className="primary-button facility-interact" disabled={!ready || !canInteract} onClick={session.interact}>Use {entity.kind === "habitat" ? "home base" : "facility"}</button> : <span className="world-facility-tag">{tile.terrain === "rock" ? "Blocked" : "Empty square"}</span>}
-      </div>
-      {session.notice && <p className="exploration-notice" role="status">{session.notice}</p>}
-      {activeFacility && <section className="facility-panel" aria-label={`${activeFacility.name} interaction`}>
-        <div><p className="eyebrow">{activeFacility.kind === "habitat" ? "WELCOME HOME" : "FACILITY LOG"}</p><h3>{activeFacility.name}</h3><p>{FACILITY_DESCRIPTIONS[activeFacility.kind]}</p><p>{activeFacility.kind === "habitat" ? "You are safe beside base. Mission decisions and crew resources are available below." : "Your visit has been recorded in your exploration log. Mission decisions below control your resource supplies."}</p></div>
-        <button type="button" className="text-button" onClick={session.dismiss}>Continue exploring</button>
-      </section>}
-      <footer className="world-help"><p id="world-controls-help">Arrow keys / WASD to move · E to use facilities · Click empty squares to walk · Scroll to zoom</p><span><span className="status-dot" />{missionStatus}</span></footer>
+
     </section>
   );
 }

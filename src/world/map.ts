@@ -3,13 +3,15 @@ import type { Footprint, GridPosition, Point, WorldEntity, WorldMap, WorldTile }
 import { inRenderRange } from "./visibility";
 
 const FACILITIES: readonly WorldEntity[] = [
-  { id: "hab-01", name: "Home base", kind: "habitat", position: { col: 12, row: 12 }, footprint: { width: 1, height: 1 }, height: 56 },
-  { id: "solar-01", name: "West solar array", kind: "solar", position: { col: 10, row: 11 }, footprint: { width: 1, height: 1 }, height: 12 },
-  { id: "solar-02", name: "North solar array", kind: "solar", position: { col: 12, row: 9 }, footprint: { width: 1, height: 1 }, height: 12 },
-  { id: "solar-03", name: "East solar array", kind: "solar", position: { col: 15, row: 10 }, footprint: { width: 1, height: 1 }, height: 12 },
-  { id: "oxygen-01", name: "Oxygen station", kind: "oxygen", position: { col: 14, row: 13 }, footprint: { width: 1, height: 1 }, height: 42 },
-  { id: "lab-01", name: "Science lab", kind: "lab", position: { col: 9, row: 14 }, footprint: { width: 1, height: 1 }, height: 34 },
-  { id: "shield-01", name: "Storm shelter", kind: "shield", position: { col: 14, row: 16 }, footprint: { width: 1, height: 1 }, height: 26 },
+  { id: "hab-01", name: "Home base", kind: "habitat", interaction: { type: "base" }, position: { col: 12, row: 12 }, footprint: { width: 1, height: 1 }, height: 56 },
+  { id: "solar-01", name: "Power stop", kind: "solar", interaction: { type: "resource" }, position: { col: 10, row: 11 }, footprint: { width: 1, height: 1 }, height: 12 },
+  { id: "solar-02", name: "Shake & dust challenge", kind: "solar", interaction: { type: "task", taskId: "safety" }, position: { col: 12, row: 9 }, footprint: { width: 1, height: 1 }, height: 12 },
+  { id: "solar-03", name: "Space garden challenge", kind: "lab", interaction: { type: "task", taskId: "garden" }, position: { col: 15, row: 10 }, footprint: { width: 1, height: 1 }, height: 24 },
+  { id: "oxygen-01", name: "Air stop", kind: "oxygen", interaction: { type: "resource" }, position: { col: 14, row: 13 }, footprint: { width: 1, height: 1 }, height: 42 },
+  { id: "water-01", name: "Water stop", kind: "oxygen", interaction: { type: "resource" }, position: { col: 11, row: 15 }, footprint: { width: 1, height: 1 }, height: 25 },
+  { id: "lab-01", name: "Rock detective challenge", kind: "lab", interaction: { type: "task", taskId: "samples" }, position: { col: 9, row: 14 }, footprint: { width: 1, height: 1 }, height: 34 },
+  { id: "shield-01", name: "Shield stop", kind: "shield", interaction: { type: "resource" }, position: { col: 14, row: 16 }, footprint: { width: 1, height: 1 }, height: 26 },
+  { id: "sample-01", name: "Discovery stop", kind: "lab", interaction: { type: "resource" }, position: { col: 13, row: 15 }, footprint: { width: 1, height: 1 }, height: 16 },
 ];
 
 export function containsCell(position: GridPosition, origin: GridPosition, footprint: Footprint): boolean {
@@ -34,7 +36,7 @@ function tileHash(seed: number, col: number, row: number): number {
 }
 
 /** A separate seed-derived view of the outpost; never consumes mission RNG. */
-export function createOutpost(seed: number): WorldMap {
+export function createOutpost(seed: number, levelId: "moon" | "mars" = "moon"): WorldMap {
   const width = 24;
   const height = 24;
   const entities = FACILITIES.map((entity) => ({
@@ -51,7 +53,7 @@ export function createOutpost(seed: number): WorldMap {
       tiles.push({ col, row, terrain, variant: hash % 4 });
     }
   }
-  return { id: "mars-outpost-v2", seed, width, height, tiles, entities,
+  return { id: `${levelId}-outpost-v3`, levelId, location: levelId === "moon" ? "Moon" : "Mars", seed, width, height, tiles, entities,
     home: { col: 12, row: 12 }, spawn: { col: 12, row: 13 } };
 }
 

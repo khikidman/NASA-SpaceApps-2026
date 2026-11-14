@@ -1,27 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { createExplorer, findVisiblePath, interactWithFacility, moveExplorer, restoreExplorer, saveExplorer, walkable } from "./exploration";
+import { createExplorer, findVisiblePath, findInteractionPath, interactWithFacility, moveExplorer, restoreExplorer, saveExplorer, walkable } from "./exploration";
 import { createOutpost, entityAt, pickWorldPosition } from "./map";
 import { gridToWorld, tileCenter } from "./isometric";
 import { cellKey, inRenderRange, RENDER_RADIUS, visibleTiles } from "./visibility";
 
 describe("player-centered render distance", () => {
-  it("uses a circular radius of three, with exactly 29 squares away from edges", () => {
+  it("uses a circular radius of five, with exactly 81 squares away from edges", () => {
     const world = createOutpost(1);
     const player = world.spawn;
-    expect(RENDER_RADIUS).toBe(3);
-    expect(visibleTiles(world, player)).toHaveLength(29);
-    expect(inRenderRange({ col: player.col + 3, row: player.row }, player)).toBe(true);
-    expect(inRenderRange({ col: player.col + 2, row: player.row + 2 }, player)).toBe(true);
-    expect(inRenderRange({ col: player.col + 3, row: player.row + 1 }, player)).toBe(false);
-    expect(inRenderRange({ col: player.col + 3, row: player.row + 3 }, player)).toBe(false);
-    expect(inRenderRange({ col: player.col + 4, row: player.row }, player)).toBe(false);
+    expect(RENDER_RADIUS).toBe(5);
+    expect(visibleTiles(world, player)).toHaveLength(81);
+    expect(inRenderRange({ col: player.col + 5, row: player.row }, player)).toBe(true);
+    expect(inRenderRange({ col: player.col + 3, row: player.row + 4 }, player)).toBe(true);
+    expect(inRenderRange({ col: player.col + 4, row: player.row + 3 }, player)).toBe(true);
+    expect(inRenderRange({ col: player.col + 4, row: player.row + 4 }, player)).toBe(false);
+    expect(inRenderRange({ col: player.col + 5, row: player.row + 1 }, player)).toBe(false);
   });
 
   it("stays within the circle and world bounds at every square, including corners", () => {
     const world = createOutpost(22);
     for (const player of world.tiles) {
       const tiles = visibleTiles(world, player);
-      expect(tiles.length).toBeLessThanOrEqual(29);
+      expect(tiles.length).toBeLessThanOrEqual(81);
       expect(new Set(tiles.map(cellKey)).size).toBe(tiles.length);
       for (const tile of tiles) {
         expect(inRenderRange(tile, player)).toBe(true);
@@ -31,7 +31,7 @@ describe("player-centered render distance", () => {
         expect(tile.row).toBeLessThan(world.height);
       }
     }
-    expect(visibleTiles(world, { col: 0, row: 0 })).toHaveLength(11);
+    expect(visibleTiles(world, { col: 0, row: 0 })).toHaveLength(26);
   });
 
   it("never picks hidden ground or hidden facility geometry", () => {
@@ -84,18 +84,34 @@ describe("exploration commands and persistence", () => {
   it("finds stepwise routes within visible clear terrain and rejects hidden destinations", () => {
     const world = createOutpost(1);
     const start = world.spawn;
-    const target = { col: 12, row: 16 };
+    const target = { col: 12, row: 17 };
     const path = findVisiblePath(world, start, target)!;
-    expect(path).toHaveLength(3);
+    expect(path).toHaveLength(4);
     let explorer = createExplorer(world);
     for (const step of path) {
       expect(inRenderRange(step, start)).toBe(true);
       explorer = moveExplorer(world, explorer, step);
     }
     expect(explorer.position).toEqual(target);
-    expect(findVisiblePath(world, start, { col: 12, row: 17 })).toBeNull();
+    expect(findVisiblePath(world, start, { col: 12, row: 18 })).toHaveLength(5);
+    expect(findVisiblePath(world, start, { col: 12, row: 19 })).toBeNull();
     expect(findVisiblePath(world, start, world.home)).toBeNull();
     expect(findVisiblePath(world, start, start)).toEqual([]);
+  });
+
+  it("finds the shortest clear approach to a clicked stop without entering its square", () => {
+    const world = createOutpost(1);
+    expect(findInteractionPath(world, world.spawn, world.home)).toEqual([]);
+    const path = findInteractionPath(world, world.spawn, { col: 9, row: 14 })!;
+    expect(path).toHaveLength(3);
+    let explorer = createExplorer(world);
+    for (const target of path) {
+      expect(inRenderRange(target, world.spawn)).toBe(true);
+      explorer = moveExplorer(world, explorer, target);
+    }
+    expect(interactWithFacility(world, explorer, "lab-01").activeFacilityId).toBe("lab-01");
+    expect(findInteractionPath(world, { col: 0, row: 0 }, world.home)).toBeNull();
+    expect(findInteractionPath(world, world.spawn, world.spawn)).toBeNull();
   });
 
   it("requires adjacency for interaction, records a visit once, and leaves mission resources separate", () => {

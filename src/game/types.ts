@@ -1,57 +1,43 @@
-export const RESOURCE_KEYS = ["oxygen", "power", "shielding", "science"] as const;
+import type { GridPosition } from "../world/types";
+export const RESOURCE_KEYS = ["oxygen", "water", "power", "shielding", "science"] as const;
 export type Resource = (typeof RESOURCE_KEYS)[number];
 export type Resources = Record<Resource, number>;
 export type ResourceDelta = Partial<Resources>;
-
-export interface Choice {
-  id: string;
-  label: string;
-  description: string;
-  effects: ResourceDelta;
-}
-
+export type WorldId = "moon" | "mars";
+export interface Choice { id: string; label: string; description: string; effects: ResourceDelta }
 export interface MissionEvent {
-  id: string;
-  title: string;
-  category: "operations" | "weather" | "equipment" | "science";
-  minDay: number;
-  description: string;
-  effects: ResourceDelta;
-  radiation: number;
-  fact: string;
-  sourceId: string;
-  choices: readonly Choice[];
+  id: string; title: string; description: string; fact: string; sourceId: string;
+  effects: ResourceDelta; radiation: number; choices: readonly Choice[];
 }
-
 export interface MissionConfig {
-  id: string;
-  title: string;
-  location: "Mars";
-  duration: number;
-  initialResources: Resources;
-  dailyEffects: ResourceDelta;
-  capacity: Resources;
+  id: WorldId; title: string; location: "Moon" | "Mars"; duration: number;
+  initialResources: Resources; dailyEffects: ResourceDelta; capacity: Resources;
 }
-
 export interface TurnSummary {
-  day: number;
-  eventId: string;
-  eventTitle: string;
-  choiceId: string;
-  choiceLabel: string;
-  before: Resources;
-  after: Resources;
-  shieldAbsorbed: number;
-  emergencyOxygen: number;
+  world: WorldId; day: number; eventTitle: string; choiceLabel: string;
+  before: Resources; after: Resources; knowledge: number;
 }
-
+export type GameAction =
+  | { type: "move"; position: GridPosition }
+  | { type: "collect"; nodeId: string }
+  | { type: "submit"; nodeId: string; answers: string[] }
+  | { type: "learn" }
+  | { type: "end-day"; choiceId: string }
+  | { type: "travel" };
 export interface GameState {
-  missionId: string;
-  seed: number;
-  randomState: number;
-  day: number;
-  resources: Resources;
-  eventId: string;
-  status: "playing" | "won" | "lost";
-  history: readonly TurnSummary[];
+  missionId: WorldId; seed: number; day: number; resources: Resources;
+  status: "playing" | "level-complete" | "won" | "lost";
+  position: GridPosition; steps: number; timeLeft: number;
+  knowledgeEarned: number; levelKnowledge: number; dayKnowledge: number;
+  collectedNodes: readonly string[]; taskProgress: Readonly<Record<string, number>>; learnedToday: boolean;
+  discoveries: readonly { world: WorldId; day: number; fact: string; sourceId: string }[];
+  completedLevels: readonly WorldId[]; history: readonly TurnSummary[];
+  actions: readonly GameAction[]; feedback: string;
 }
+export interface TaskOption { id: string; label: string; weight?: number; effects?: ResourceDelta }
+export interface TaskStep {
+  id: string; kind: "pick" | "pack" | "order"; prompt: string; hint: string; fact: string; sourceId: string;
+  cost: ResourceDelta; hours: number; reward: number; options: readonly TaskOption[];
+  answer: readonly string[]; budget?: number;
+}
+export interface LearningTask { id: string; title: string; description: string; steps: readonly TaskStep[] }
