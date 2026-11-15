@@ -56,6 +56,7 @@ class PixiWorldRenderer implements WorldRenderer {
   private enterRequested = false;
   private homeFocus: Point | null = null;
   private reportedAirlock = "";
+  private taughtHomeGuidance = false;
 
   constructor(
     private readonly app: Application<WebGLRenderer>,
@@ -78,7 +79,7 @@ class PixiWorldRenderer implements WorldRenderer {
       if (!inside) this.scene.facePlayer({ col: 0, row: 1 });
       this.callbacks.onHomeChange(inside);
       this.app.canvas.setAttribute("aria-label", inside ? "Home base interior. Five by five floor. Click or use arrows or WASD to walk. Walk through the doorway or press Escape to leave." : `${world.location} exploration world. Click to walk. E enters a nearby stop.`);
-    }, astronautAtlas);
+    }, astronautAtlas, (id) => this.callbacks.onHomeStation?.(id));
     this.app.stage.addChild(this.scene.root, this.home.root, this.home.crossingAvatar, this.homeMarker.root, this.objectiveMarker.root);
     this.scene.setSelection(initialState.selected, performance.now(), false);
 
@@ -92,7 +93,7 @@ class PixiWorldRenderer implements WorldRenderer {
     canvas.dataset.surfaceVariants = String(this.lunar?.textures.length ?? 0);
     canvas.dataset.baseAsset = LUNAR_BASE_ASSET.src;
     canvas.dataset.baseFootprint = "3x3";
-    canvas.dataset.baseModules = "6";
+    canvas.dataset.baseModules = "8";
     canvas.dataset.baseTileObjects = "9";
     canvas.dataset.baseEntrance = "southwest";
     canvas.dataset.characterAsset = ASTRONAUT_SHEET_SRC;
@@ -141,6 +142,7 @@ class PixiWorldRenderer implements WorldRenderer {
       { ...this.camera, x: this.camera.x - area.left, y: this.camera.y - area.top }, area.width, area.height);
     this.homeMarker.root.visible = !this.home.open && !!guide;
     this.app.canvas.dataset.homeGuide = String(!!guide);
+    if (guide && !this.taughtHomeGuidance) { this.taughtHomeGuidance = true; this.callbacks.onHomeGuidance?.(); }
     if (guide) {
       this.homeMarker.root.position.set(guide.x + area.left, guide.y + area.top);
       this.homeMarker.arrow.rotation = guide.angle;
@@ -454,6 +456,7 @@ class PixiWorldRenderer implements WorldRenderer {
 
   setPresentation(presentation: WorldPresentation) {
     this.scene.setPresentation(presentation);
+    this.home.setTutorialState(presentation.tutorial);
     if (presentation.objectiveNodeId !== this.objectiveId) {
       this.objectiveId = presentation.objectiveNodeId; this.objective = this.world.entities.find((e) => e.id === this.objectiveId)?.position ?? null;
     }
@@ -573,7 +576,7 @@ export async function createWorldRenderer(
       resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
       autoStart: false, sharedTicker: false,
     });
-    const [baseTextures, atlas] = await Promise.all([loadLunarBaseTextures(), loadAstronautAtlas()]);
+    const [baseTextures, atlas] = await Promise.all([loadLunarBaseTextures(world), loadAstronautAtlas()]);
     astronautAtlas = atlas;
     if (signal.aborted) throw new DOMException("World initialization cancelled.", "AbortError");
     if (app.renderer.type !== RendererType.WEBGL) throw new Error("A WebGL renderer is required.");

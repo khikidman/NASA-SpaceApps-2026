@@ -1,5 +1,5 @@
 import type { GameState, MissionEvent } from "../game/types";
-export const DATASET_VERSION = "learning-journey-2";
+export const DATASET_VERSION = "day-one-3";
 export const DATASET_KIND = "authored-educational-scenarios";
 export const EVENTS: readonly MissionEvent[] = [
   { id: "quiet", title: "A peaceful evening", description: "Your team is ready to rest. How will you help the base tonight?", fact: "Space crews need supplies, careful planning, and rest as well as discoveries.", sourceId: "life-support", effects: {}, radiation: 0, choices: [

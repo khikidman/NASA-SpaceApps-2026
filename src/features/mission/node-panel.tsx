@@ -32,7 +32,11 @@ function StepPanel({ game, nodeId, step, act }: { game: GameState; nodeId: strin
     if (step.kind === "order") setOrderSlots((slots) => { const next = [...slots], from = next.indexOf(id), to = index ?? next.indexOf(null); if (to < 0) return slots; const replaced = next[to]; if (from >= 0) next[from] = replaced; next[to] = id; return next; });
     else setAnswers((a) => a.includes(id) ? a : [...a, id]);
   }
-  function artwork(id: string, size = 48) { return <GameArt name={OPTION_VISUALS[id]?.art ?? "notes"} size={size} />; }
+  function artwork(id: string, size = 48) {
+    const art = OPTION_VISUALS[id]?.art ?? "notes";
+    const gardenLight = art === "lamp" && (step.id === "moon-garden" || step.id === "mars-garden");
+    return <GameArt name={art} size={size} growLightState={gardenLight ? answers.includes(id) ? "white-low" : "off" : undefined} />;
+  }
   return <>
     <h3 className="visual-prompt">{STEP_PROMPTS[step.id] ?? step.prompt}</h3>
     {step.kind === "pack" && <div className={`packing-zone ${dragOver ? "drag-over" : ""} ${bagSize > (step.budget ?? 0) ? "over-budget" : ""}`} data-drop-zone="bag" onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={(e) => drop(e)} role="group" aria-label={`Bag spaces ${bagSize} of ${step.budget}`}>

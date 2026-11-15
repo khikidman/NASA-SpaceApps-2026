@@ -1,5 +1,9 @@
 # Modular lunar base
 
+The current artwork uses the promoted bank in `../catalog/ASSET-BANK.md`.
+The six-component set below is retained as the previous version for rollback.
+Both versions use the same 3×3 bounds and independent 1×1 world objects.
+
 The current base is a **3×3 prefab containing nine independent 1×1 volumes**.
 The earlier complete-building PNGs are archived references, not runtime assets.
 

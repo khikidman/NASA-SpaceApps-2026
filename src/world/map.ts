@@ -2,6 +2,7 @@ import { compareEntityDepth, entitySilhouette, pointInPolygon, worldToGrid } fro
 import type { Footprint, GridPosition, Point, WorldEntity, WorldMap, WorldTile } from "./types";
 import { inRenderRange } from "./visibility";
 import { createLunarBasePrefab } from "./base-prefab";
+import { worldBankAsset, worldBankRegistration } from "../assets/asset-bank";
 
 const HOME = { col: 12, row: 12 } as const;
 
@@ -38,12 +39,20 @@ function tileHash(seed: number, col: number, row: number): number {
 }
 
 /** A separate seed-derived view of the outpost; never consumes mission RNG. */
-export function createOutpost(seed: number, levelId: "moon" | "mars" = "moon"): WorldMap {
+export function createOutpost(seed: number, levelId: "moon" | "mars" = "moon", tutorial = false): WorldMap {
   const width = 24;
   const height = 24;
   const entities = [...createLunarBasePrefab(HOME), ...FACILITIES.map((entity) => ({
     ...entity, position: { ...entity.position }, footprint: { ...entity.footprint },
-  }))];
+  }))].map((entity) => {
+    const id = worldBankAsset(entity);
+    const model = id ? { ...entity, height: worldBankRegistration(id).height } : entity;
+    if (!tutorial) return model;
+    if (entity.id === "solar-02") return { ...model, name: "Fix the radio" };
+    if (entity.id === "lab-01") return { ...model, name: "Place the detector", artId: "moon-flag", height: 64 };
+    if (entity.id === "water-01") return { ...model, name: "Ice cave", height: 36 };
+    return model;
+  });
   const tiles: WorldTile[] = [];
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {

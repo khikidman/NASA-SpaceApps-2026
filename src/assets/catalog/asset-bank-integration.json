@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "id": "lunar-v2-base-habitat",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/base-habitat.assetlab.json",
+      "sourceRevision": "8c9cc2e7-99d7-4862-be79-e8fa20bbff6e",
+      "revision": "6a8be112-1917-4a53-ad29-50d9a72a3c49",
+      "promotion": "asset-lab/promotions/lunar-v2-base-habitat-6a8be112-1917-4a53-ad29-50d9a72a3c49.json"
+    },
+    {
+      "id": "lunar-v2-base-lab",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/base-lab.assetlab.json",
+      "sourceRevision": "75a0b8eb-cfcb-42ef-b09a-9f45d019d249",
+      "revision": "3b9abe42-5e6d-4a90-a9b4-bcd968719e2d",
+      "promotion": "asset-lab/promotions/lunar-v2-base-lab-3b9abe42-5e6d-4a90-a9b4-bcd968719e2d.json"
+    },
+    {
+      "id": "lunar-v2-base-greenhouse",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/base-greenhouse.assetlab.json",
+      "sourceRevision": "b0bf0e47-d461-4d51-80c6-39d3e2445766",
+      "revision": "cfe4a36b-12d8-4266-b2ea-a0c44b250816",
+      "promotion": "asset-lab/promotions/lunar-v2-base-greenhouse-cfe4a36b-12d8-4266-b2ea-a0c44b250816.json"
+    },
+    {
+      "id": "lunar-v2-base-airlock",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/base-airlock.assetlab.json",
+      "sourceRevision": "8b050a34-b702-45f7-8713-6e802b5404b6",
+      "revision": "761fff13-ca48-4d6c-bf55-4033a6ee5bae",
+      "promotion": "asset-lab/promotions/lunar-v2-base-airlock-761fff13-ca48-4d6c-bf55-4033a6ee5bae.json"
+    },
+    {
+      "id": "lunar-v2-base-solar",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/base-solar.assetlab.json",
+      "sourceRevision": "081c3322-9e83-4dd8-9ffa-690a98ea0473",
+      "revision": "b98fa001-df11-4b24-ac3b-de4e296b66ea",
+      "promotion": "asset-lab/promotions/lunar-v2-base-solar-b98fa001-df11-4b24-ac3b-de4e296b66ea.json"
+    },
+    {
+      "id": "lunar-v2-base-comms",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/base-comms.assetlab.json",
+      "sourceRevision": "8807719d-e5b3-4d05-94db-4b4388033eac",
+      "revision": "56699f82-4a57-4ffe-bcd2-9c27d7a9dafb",
+      "promotion": "asset-lab/promotions/lunar-v2-base-comms-56699f82-4a57-4ffe-bcd2-9c27d7a9dafb.json"
+    },
+    {
+      "id": "lunar-v2-tunnel-col",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/tunnel-col.assetlab.json",
+      "sourceRevision": "21abf15f-eefe-4fa0-b344-48174fac2eaf",
+      "revision": "a978fc5c-da65-45ab-8957-1d7ce122fe49",
+      "promotion": "asset-lab/promotions/lunar-v2-tunnel-col-a978fc5c-da65-45ab-8957-1d7ce122fe49.json"
+    },
+    {
+      "id": "lunar-v2-tunnel-row",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/tunnel-row.assetlab.json",
+      "sourceRevision": "da8e64e6-f0bf-4458-bc98-96ef63b79c84",
+      "revision": "b31e45b1-7643-4fd4-91e7-9f8a5c149753",
+      "promotion": "asset-lab/promotions/lunar-v2-tunnel-row-b31e45b1-7643-4fd4-91e7-9f8a5c149753.json"
+    },
+    {
+      "id": "lunar-v2-tunnel-cross",
+      "sourcePackage": "asset-lab/exports/lunar-base-v2/tunnel-cross.assetlab.json",
+      "sourceRevision": "17427de7-e25f-47c7-aa13-c28135b51d02",
+      "revision": "e3302345-ed9a-4da7-a541-e9e2ccae5045",
+      "promotion": "asset-lab/promotions/lunar-v2-tunnel-cross-e3302345-ed9a-4da7-a541-e9e2ccae5045.json"
+    },
+    {
+      "id": "moon-flag",
+      "sourcePackage": "asset-lab/exports/moon-flag.assetlab.json",
+      "sourceRevision": "b240f8f5-8688-402f-b663-61365821592f",
+      "revision": "9fc5cd4a-4ee3-4c09-b2aa-a599990791b8",
+      "promotion": "asset-lab/promotions/moon-flag-9fc5cd4a-4ee3-4c09-b2aa-a599990791b8.json"
+    },
+    {
+      "id": "led-grow-off",
+      "sourcePackage": "asset-lab/exports/led-grow-off.assetlab.json",
+      "sourceRevision": "64fc078c-93f9-43bc-8217-3931ed483353",
+      "revision": "01b4dafd-4a69-4af1-b5bf-31d8a6a12690",
+      "promotion": "asset-lab/promotions/led-grow-off-01b4dafd-4a69-4af1-b5bf-31d8a6a12690.json"
+    },
+    {
+      "id": "led-grow-white-low",
+      "sourcePackage": "asset-lab/exports/led-grow-white-low.assetlab.json",
+      "sourceRevision": "9f03e59d-606a-40cc-8d2d-c5af08b3df3d",
+      "revision": "2c9a35db-bed3-416b-981e-c7ee8eeedb81",
+      "promotion": "asset-lab/promotions/led-grow-white-low-2c9a35db-bed3-416b-981e-c7ee8eeedb81.json"
+    },
+    {
+      "id": "led-grow-white-high",
+      "sourcePackage": "asset-lab/exports/led-grow-white-high.assetlab.json",
+      "sourceRevision": "3a9dd637-9e71-4da9-bc98-6e735fc3fa0f",
+      "revision": "2ee73307-5204-4bc9-b510-363accaea7a1",
+      "promotion": "asset-lab/promotions/led-grow-white-high-2ee73307-5204-4bc9-b510-363accaea7a1.json"
+    },
+    {
+      "id": "led-grow-warm-low",
+      "sourcePackage": "asset-lab/exports/led-grow-warm-low.assetlab.json",
+      "sourceRevision": "0b3a553d-d38d-4432-81f8-84449ad64623",
+      "revision": "f0025964-15db-446f-bdc6-432869c2c3de",
+      "promotion": "asset-lab/promotions/led-grow-warm-low-f0025964-15db-446f-bdc6-432869c2c3de.json"
+    },
+    {
+      "id": "led-grow-warm-high",
+      "sourcePackage": "asset-lab/exports/led-grow-warm-high.assetlab.json",
+      "sourceRevision": "6b105642-60f8-4920-afab-3dc28972bec6",
+      "revision": "c0f67358-47a3-4b1d-b8c0-90fc5f63edc7",
+      "promotion": "asset-lab/promotions/led-grow-warm-high-c0f67358-47a3-4b1d-b8c0-90fc5f63edc7.json"
+    },
+    {
+      "id": "led-grow-red-blue-low",
+      "sourcePackage": "asset-lab/exports/led-grow-red-blue-low.assetlab.json",
+      "sourceRevision": "f4d7cbab-7a42-46cd-848a-81cd75744461",
+      "revision": "47670f69-9ded-4b97-844d-d2b6ba6ffe15",
+      "promotion": "asset-lab/promotions/led-grow-red-blue-low-47670f69-9ded-4b97-844d-d2b6ba6ffe15.json"
+    },
+    {
+      "id": "led-grow-red-blue-high",
+      "sourcePackage": "asset-lab/exports/led-grow-red-blue-high.assetlab.json",
+      "sourceRevision": "a2d7763b-4500-4b3d-ab90-fb4db5b64937",
+      "revision": "a75aa5f6-ff11-4319-816d-aea430aa1482",
+      "promotion": "asset-lab/promotions/led-grow-red-blue-high-a75aa5f6-ff11-4319-816d-aea430aa1482.json"
+    }
+  ]
+}

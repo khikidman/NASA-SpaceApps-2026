@@ -1,0 +1,82 @@
+{
+  "lunar-v2-base-habitat": {
+    "height": 50,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "lunar-v2-base-lab": {
+    "height": 47,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "lunar-v2-base-greenhouse": {
+    "height": 50,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "lunar-v2-base-airlock": {
+    "height": 46,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "lunar-v2-base-solar": {
+    "height": 39,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "lunar-v2-base-comms": {
+    "height": 49,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "lunar-v2-tunnel-col": {
+    "height": 33,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "lunar-v2-tunnel-row": {
+    "height": 29,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "lunar-v2-tunnel-cross": {
+    "height": 40,
+    "scale": 0.08480565371024736,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "moon-flag": {
+    "height": 64,
+    "scale": 0.065,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  }
+}

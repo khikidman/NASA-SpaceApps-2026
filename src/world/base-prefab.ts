@@ -1,17 +1,15 @@
 import { homeBuildingPosition } from "./home";
 import type { BaseModuleKind, GridPosition, WorldEntity } from "./types";
+import { BASE_BANK_ART, worldBankRegistration } from "../assets/asset-bank";
 
-export const BASE_HULL_HEIGHT = 60;
-export const BASE_MODULE_HEIGHT: Record<BaseModuleKind, number> = {
-  hull: BASE_HULL_HEIGHT, airlock: BASE_HULL_HEIGHT,
-  "vent-intake": 105, "vent-exhaust": 115, antenna: 145, dome: 115,
-};
+export const BASE_MODULE_HEIGHT = Object.fromEntries(Object.entries(BASE_BANK_ART)
+  .map(([module, id]) => [module, worldBankRegistration(id).height])) as Record<BaseModuleKind, number>;
 
-/** Six reusable asset types, arranged into nine independent 1×1 tile objects. */
+/** The lab bank fits the existing nine independent 1×1 base cells. */
 export const LUNAR_BASE_PREFAB: readonly (readonly BaseModuleKind[])[] = [
-  ["vent-intake", "hull", "antenna"],
-  ["hull", "dome", "hull"],
-  ["vent-exhaust", "airlock", "hull"],
+  ["solar", "greenhouse", "comms"],
+  ["habitat", "junction", "research"],
+  ["flag", "airlock", "solar"],
 ];
 
 export function createLunarBasePrefab(home: GridPosition): WorldEntity[] {

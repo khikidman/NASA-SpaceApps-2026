@@ -4,7 +4,9 @@ import { getTask, RESOURCE_NODES, TASKS } from "../data/tasks";
 import { adjacent, walkable } from "../world/exploration";
 import { createOutpost } from "../world/map";
 import { RESOURCE_KEYS, type GameAction, type GameState, type ResourceDelta, type Resources, type TaskStep, type WorldId } from "./types";
-export const RULESET_VERSION = 2;
+import { DAY1_CONFIG, DAY1_TASKS, isDayOne, remainingDayOneHours } from "../data/day-one";
+import { applyTutorialAction } from "./tutorial";
+export const RULESET_VERSION = 3;
 export function getMission(id: string) {
   if (id !== "moon" && id !== "mars") throw new Error("Unknown world.");
   return MISSIONS[id];
@@ -15,16 +17,21 @@ export function createGame(seed: number): GameState {
     seed: seed || 1, missionId: "moon", day: 1, resources: { ...MISSIONS.moon.initialResources }, status: "playing",
     position: { col: 12, row: 13 }, steps: 0, timeLeft: WORK_HOURS,
     knowledgeEarned: 0, levelKnowledge: 0, dayKnowledge: 0, collectedNodes: [], taskProgress: {}, learnedToday: false,
-    discoveries: [], completedLevels: [], history: [], actions: [], feedback: "Welcome to the Moon! Try a challenge marked with a question mark.",
+    discoveries: [], completedLevels: [], history: [], actions: [],
+    tutorial: { completed: [], ice: 0, exercise: "pending", fatigue: false },
+    // [FACT_NEEDED: moonquake cause] Authored story event, not a causal science claim.
+    feedback: "You landed! A moonquake shook the base. Let’s fix the radio.",
   };
 }
 export function canAfford(resources: Resources, effects: ResourceDelta): boolean {
   return RESOURCE_KEYS.every((key) => resources[key] + (effects[key] ?? 0) >= 0);
 }
 export function completedTasks(state: GameState): number {
+  if (isDayOne(state)) return state.tutorial.completed.length;
   return TASKS[state.missionId].filter((t) => (state.taskProgress[t.id] ?? 0) >= t.steps.length).length;
 }
 export function canEndDay(state: GameState): boolean {
+  if (isDayOne(state)) return state.status === "playing" && state.tutorial.completed.length === DAY1_TASKS.length && state.dayKnowledge >= DAY1_CONFIG.scienceGoal && state.tutorial.exercise !== "pending";
   return state.status === "playing" && state.dayKnowledge >= DAILY_KNOWLEDGE_GOAL && completedTasks(state) >= 1;
 }
 export function sumEffects(...effects: ResourceDelta[]): ResourceDelta {
@@ -39,7 +46,7 @@ export function checkAnswer(step: TaskStep, answers: readonly string[]): boolean
   if (step.kind === "pick") return answers.length === 1 && answers[0] === step.answer[0];
   return step.answer.every((a) => answers.includes(a)) && step.options.filter((o) => answers.includes(o.id)).reduce((n, o) => n + (o.weight ?? 0), 0) <= (step.budget ?? 0);
 }
-function applyEffects(state: GameState, effects: ResourceDelta, hours: number, reward = 0): GameState {
+export function applyEffects(state: GameState, effects: ResourceDelta, hours: number, reward = 0): GameState {
   if (state.timeLeft < hours) throw new Error("Not enough work hours. Finish a shorter task or get ready for bed.");
   if (!canAfford(state.resources, effects)) throw new Error("You need more supplies or knowledge stars for this plan. Try a supply stop first.");
   const resources = { ...state.resources };
@@ -60,6 +67,7 @@ export function previewNight(state: GameState, choiceId: string) {
   resources.shielding -= absorbed;
   resources.oxygen -= event.radiation - absorbed;
   for (const key of RESOURCE_KEYS) resources[key] = Math.min(MISSIONS[state.missionId].capacity[key], Math.max(0, resources[key] + (event.effects[key] ?? 0) + (MISSIONS[state.missionId].dailyEffects[key] ?? 0)));
+  resources.energy = isDayOne(state) && state.tutorial.exercise === "skipped" ? DAY1_CONFIG.fatigueMorningEnergy : 100;
   return { resources, effects: Object.fromEntries(RESOURCE_KEYS.map((k) => [k, resources[k] - state.resources[k]])), affordable: canAfford(state.resources, sumEffects({ science: -3 }, Object.fromEntries(Object.entries(choice.effects).filter(([, value]) => value < 0)))), event, choice };
 }
 export function applyAction(state: GameState, action: GameAction): GameState {
@@ -75,15 +83,21 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       case "move": {
         const world = createOutpost(state.seed, state.missionId);
         if (!action.position || !adjacent(state.position, action.position) || !walkable(world, action.position)) throw new Error("Walk one clear square at a time.");
-        next = { ...state, position: { ...action.position }, steps: state.steps + 1 };
+        next = { ...state, position: { ...action.position }, steps: state.steps + 1,
+          resources: isDayOne(state) ? { ...state.resources, oxygen: Math.max(0, state.resources.oxygen - DAY1_CONFIG.oxygenPerStep) } : state.resources };
         break;
       }
+      case "tutorial-submit": case "tutorial-exercise": case "tutorial-refill": {
+        next = applyTutorialAction(state, action, applyEffects); break;
+      }
       case "collect": case "submit": {
+        if (isDayOne(state) && action.type === "submit") throw new Error("Follow the Day 1 mission strip.");
         const world = createOutpost(state.seed, state.missionId);
         const node = world.entities.find((n) => n.id === action.nodeId);
         if (!node || !adjacent(state.position, node.position)) throw new Error("Move beside this stop first.");
         if (action.type === "collect") {
           const supply = RESOURCE_NODES[node.id];
+          if (isDayOne(state) && (supply?.resource === "science" || state.timeLeft - (supply?.hours ?? 0) < remainingDayOneHours(state))) throw new Error("Save these hours for your Day 1 missions.");
           if (node.interaction.type !== "resource" || !supply) throw new Error("This is not a supply stop.");
           if (state.collectedNodes.includes(node.id)) throw new Error("You have used this stop today. It refills tomorrow.");
           if (state.resources[supply.resource] >= MISSIONS[state.missionId].capacity[supply.resource]) throw new Error("Your tank is full. Save this stop for later.");
@@ -103,13 +117,14 @@ export function applyAction(state: GameState, action: GameAction): GameState {
         break;
       }
       case "learn": {
+        if (isDayOne(state)) throw new Error("Try your current hands-on mission first.");
         if (state.learnedToday) throw new Error("You read today’s fact. Find a challenge for more discoveries!");
         next = applyEffects(state, { oxygen: -1 }, 2, 2);
         next = { ...next, learnedToday: true, discoveries: [...state.discoveries, { world: state.missionId, day: state.day, fact: getDailyEvent(state).fact, sourceId: getDailyEvent(state).sourceId }], feedback: `${getDailyEvent(state).fact} +2 knowledge stars!` };
         break;
       }
       case "end-day": {
-        if (!canEndDay(state)) throw new Error("Earn 6 stars and finish one whole challenge before bedtime.");
+        if (!canEndDay(state)) throw new Error(isDayOne(state) ? "Finish five missions, then choose your routine." : "Earn 6 stars and finish one whole challenge before bedtime.");
         const night = previewNight(state, action.choiceId);
         if (!night.affordable) throw new Error("You need more supplies or stars for this night plan.");
         const lost = night.resources.oxygen <= 0 || night.resources.water <= 0 || night.resources.power <= 0;

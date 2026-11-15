@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
+import { uiBankAsset, type GrowLightState } from "@/assets/asset-bank";
 export type Art = "rock" | "rain" | "waves" | "sensor" | "wind" | "plant" | "dark" | "supplies" | "rust" | "berries" | "lamp" | "solar" | "water" | "greenhouse" | "outside" | "box" | "air" | "jar" | "camera" | "battery" | "tray" | "notes" | "home" | "shield" | "radio" | "tools" | "moon" | "mars" | "clock" | "star" | "check" | "sun" | "dust" | "bag";
 const leaf = <><path d="M50 73V40" stroke="#81dcac" strokeWidth="5" /><path d="M49 56C28 59 25 41 26 36c18 0 25 8 23 20Z" fill="#6ac497" /><path d="M51 48c-2-19 12-24 24-23 1 18-9 26-24 23Z" fill="#a5edbc" /></>;
 const rock = <><path d="m28 62 9-22 22-6 16 18-9 21-24 3Z" fill="#acb7ba" /><path d="m37 40 13 17 25-5-16-18Z" fill="#d2dcd6" /><path d="m50 57-8 19 24-3 9-21Z" fill="#748a92" /></>;
@@ -39,6 +41,8 @@ const arts: Record<Art, ReactNode> = {
   dust: <><circle cx="66" cy="29" r="12" fill="#d4ab76" /><path className="art-wave" d="M14 48h50q16 0 16-13M20 63h63M11 77h48" stroke="#c5a18a" strokeWidth="5" /><circle cx="30" cy="33" r="3" fill="#d0b39a" /></>,
   bag: <><path d="M33 33V22q17-16 34 0v11" stroke="#b1d5df" strokeWidth="5" /><rect x="21" y="31" width="58" height="56" rx="13" fill="#7198a7" /><rect x="30" y="52" width="40" height="26" rx="5" fill="#a0c7cd" /><path d="M39 44h22" stroke="#d9e9e5" strokeWidth="3" /></>,
 };
-export function GameArt({ name, size = 64, className = "", style }: { name: Art; size?: number; className?: string; style?: CSSProperties }) {
+export function GameArt({ name, size = 64, className = "", style, growLightState }: { name: Art; size?: number; className?: string; style?: CSSProperties; growLightState?: GrowLightState }) {
+  const asset = uiBankAsset(name, growLightState);
+  if (asset) return <Image unoptimized src={asset.src} alt="" aria-hidden="true" draggable={false} className={`game-art ${className}`} width={size} height={size} style={{ objectFit: "contain", ...style }} />;
   return <svg className={`game-art ${className}`} width={size} height={size} viewBox="0 0 100 100" fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{arts[name]}</svg>;
 }

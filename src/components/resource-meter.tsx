@@ -1,7 +1,8 @@
 import { GameArt, type Art } from "./game-art";
 import type { Resource } from "@/game/types";
-const ARTS: Record<Resource, Art> = { oxygen: "air", water: "water", power: "battery", shielding: "shield", science: "star" };
+const ARTS: Record<Resource, Art> = { oxygen: "air", water: "water", power: "battery", energy: "sun", shielding: "shield", science: "star" };
 const INFO: Record<Resource, { label: string; symbol: string; color: string }> = {
+  energy: { label: "Energy", symbol: "☀", color: "#e9aa7f" },
   oxygen: { label: "Air", symbol: "O₂", color: "#91e9d9" }, water: { label: "Water", symbol: "◒", color: "#83bfff" },
   power: { label: "Power", symbol: "ϟ", color: "#f2cf85" }, shielding: { label: "Shield", symbol: "◇", color: "#afbdf7" }, science: { label: "Stars", symbol: "✦", color: "#d5b5f7" },
 };

@@ -23,4 +23,6 @@ export interface WorldRendererCallbacks {
   onContextChange(available: boolean): void;
   onHomeChange(inside: boolean): void;
   onAirlockChange(status: AirlockStatus): void;
+  onHomeStation?(id: "food" | "melt" | "exercise"): void;
+  onHomeGuidance?(): void;
 }

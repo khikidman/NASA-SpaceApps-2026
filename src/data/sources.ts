@@ -1,4 +1,6 @@
 export const SOURCES = [
+  { id: "moon-weather", name: "NASA: Weather on the Moon", url: "https://science.nasa.gov/moon/weather-on-the-moon/", description: "The Moon lacks wind and rain like Earth's weather. The story's quake and resource locations are fictional." },
+  { id: "exercise", name: "NASA: The human body in space", url: "https://www.nasa.gov/humans-in-space/the-human-body-in-space/", description: "Exercise and astronaut bones and muscles. All Energy modifiers are fictional game tuning." },
   { id: "moon", name: "NASA: Moon facts", url: "https://science.nasa.gov/moon/facts/", description: "Craters and the Moon’s very thin atmosphere." },
   { id: "moonquakes", name: "NASA: Moonquakes", url: "https://science.nasa.gov/moon/moonquakes/", description: "How scientists study a shaking Moon." },
   { id: "mars", name: "NASA: Mars facts", url: "https://science.nasa.gov/mars/facts/", description: "Rusty dust, a cold surface, and a thin atmosphere." },

@@ -1,0 +1,126 @@
+{
+  "archivePath": "asset-lab/promotions/bundles/lunar-v2-base-habitat-6a8be112-1917-4a53-ad29-50d9a72a3c49.assetlab.json",
+  "format": "spaceapps.promotion/v1",
+  "status": "applied",
+  "preparedAt": "2026-11-15T04:58:43.375Z",
+  "package": {
+    "format": "spaceapps.assetlab/v1",
+    "generatorVersion": "image-v1",
+    "asset": {
+      "id": "lunar-v2-base-habitat",
+      "title": "Lunar v2 · Living habitat · 1×1",
+      "kind": "sprite"
+    },
+    "revision": {
+      "id": "6a8be112-1917-4a53-ad29-50d9a72a3c49",
+      "parentId": "8c9cc2e7-99d7-4862-be79-e8fa20bbff6e",
+      "author": "Codex",
+      "createdAt": "2026-11-15T04:58:42.872Z",
+      "note": "Explicit source rebase for requested main-game asset-bank integration. Artwork, anchor, scale, and original package remain unchanged."
+    },
+    "lineage": [
+      {
+        "id": "8c9cc2e7-99d7-4862-be79-e8fa20bbff6e",
+        "parentId": null,
+        "author": "Codex",
+        "note": "Modular base redesign. Shared 1×1 mounting pad, 2:1 projection, ground anchor, display scale and pressure-collar style. Lab-only handoff.",
+        "createdAt": "2026-11-15T04:44:48.510Z",
+        "assetId": "lunar-v2-base-habitat",
+        "digest": "15241f4994dab928e45a643c2970264af25bfccdc6fca9d20952acd331286ce8"
+      }
+    ],
+    "source": {
+      "gitCommit": "1bcacbd03ac38fe1b6dda3b61373261442d73af4",
+      "dirty": true,
+      "files": [
+        {
+          "path": "src/assets/lunar-painter.ts",
+          "sha256": "e926114f39e0b82cd0383c674b4d21ee0c87a3aa4feb1c5e233b5dd91b3604c7"
+        },
+        {
+          "path": "src/assets/lunar-settings.mjs",
+          "sha256": "f8f61c7f926fc8eaf2b9e2137b01f2fd363d0393307039122292d8c93a800487"
+        },
+        {
+          "path": "src/assets/recipes/lunar-surface.json",
+          "sha256": "d7b0d4123c3d42cd2466395b16a752e2a897070b0c20cd074c02e1a05770cd93"
+        },
+        {
+          "path": "src/assets/catalog/lab-assets.json",
+          "sha256": "00affa413c64fae7ab5994712d1f9b90058a4165bbaafa8b2785889ccef2137d"
+        },
+        {
+          "path": "src/rendering/lunar-surface.ts",
+          "sha256": "256baadb8299f94c23f9e734f91cc981057e5ea94ba34613a4611f49bbeab08f"
+        },
+        {
+          "path": "asset-lab/core/package.mjs",
+          "sha256": "746844908b0a16eb6c34016ea6de226243c4fb2d33a0726ce066b895e7d2306c"
+        },
+        {
+          "path": "asset-lab/core/preview.ts",
+          "sha256": "08b19204b93d59ea403ec4ab642ed31a9e170ab02d5d2d176f230608543494b5"
+        },
+        {
+          "path": "src/rendering/lab-sprite.ts",
+          "sha256": "32445e3668d0d0dee7074996b689e04d191bb371c67e68bbdf729b8c3b004742"
+        }
+      ]
+    },
+    "payload": {
+      "original": {
+        "name": "base-habitat.png",
+        "width": 1254,
+        "height": 1254,
+        "inputSha256": "a1d89f36b10bc4257b331e4d84c5d5325d859d78d766fb57014f23a4e5efe603",
+        "inputMime": "image/png"
+      },
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    "environment": {
+      "renderer": "Built-in image_gen; original transparent PNG",
+      "browser": "Codex offline asset-lab packaging"
+    },
+    "digest": "6982b692d156bd1afbf6c2dbf38dbe96889d4c9aad5b98990ad1d5e39c8004bc",
+    "files": [
+      {
+        "name": "source.png",
+        "mime": "image/png",
+        "width": 1254,
+        "height": 1254,
+        "sha256": "a1d89f36b10bc4257b331e4d84c5d5325d859d78d766fb57014f23a4e5efe603"
+      },
+      {
+        "name": "sprite.png",
+        "mime": "image/png",
+        "width": 1254,
+        "height": 1254,
+        "sha256": "a1d89f36b10bc4257b331e4d84c5d5325d859d78d766fb57014f23a4e5efe603"
+      }
+    ]
+  },
+  "destination": "src/assets/catalog/lab-assets.json",
+  "beforeHash": "00affa413c64fae7ab5994712d1f9b90058a4165bbaafa8b2785889ccef2137d",
+  "afterHash": "909476927b4fa9bf3deea8ab185df4932c464a0748c7ecc972eb7c40f5ea8e38",
+  "beforeContent": "{\n  \"schemaVersion\": 1,\n  \"assets\": {}\n}\n",
+  "outputs": [
+    {
+      "path": "public/game-assets/lab/lunar-v2-base-habitat/6a8be112-1917-4a53-ad29-50d9a72a3c49/source.png",
+      "sha256": "a1d89f36b10bc4257b331e4d84c5d5325d859d78d766fb57014f23a4e5efe603"
+    },
+    {
+      "path": "public/game-assets/lab/lunar-v2-base-habitat/6a8be112-1917-4a53-ad29-50d9a72a3c49/sprite.png",
+      "sha256": "a1d89f36b10bc4257b331e4d84c5d5325d859d78d766fb57014f23a4e5efe603"
+    }
+  ],
+  "appliedAt": "2026-11-15T04:58:43.388Z"
+}

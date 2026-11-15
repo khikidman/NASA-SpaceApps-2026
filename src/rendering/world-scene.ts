@@ -7,8 +7,8 @@ import type { LunarSurfaceAtlas } from "./lunar-surface";
 import { TILE_DROP, TILE_ENTER_MS, SELECTION_MS, presenceAt, retargetPresence, heightAt, retargetHeight, easeOut, type Presence, type HeightMotion } from "./motion";
 import { exposedSideDepth, TILE_THICKNESS } from "./tile-faces";
 import { homeTerrainOpacity } from "./home-transition";
-import { createLunarBaseModule, type BaseTextures, type BaseModuleVisual } from "./lunar-base";
-import { BASE_HULL_HEIGHT } from "../world/base-prefab";
+import { createLunarBaseModule, type BaseTextures } from "./lunar-base";
+import { worldBankAsset } from "../assets/asset-bank";
 import { createAstronaut, type AstronautAtlas } from "./astronaut";
 import { ASTRONAUT_WORLD_HEIGHT } from "../assets/characters/astronaut-settings";
 export { createAstronaut } from "./astronaut";
@@ -37,12 +37,21 @@ function roofPanel(graphic: Graphics, entity: WorldEntity, color: number) {
   graphic.poly(flat(points)).fill(color).stroke({ color: 0xf3e9d4, alpha: 0.7, width: 1.5 });
 }
 
-function facility(entity: WorldEntity, world: WorldMap, baseTextures?: BaseTextures): { graphic: Container; light: Graphics; baseModule?: BaseModuleVisual } {
-  if (entity.prefab && baseTextures) {
-    const baseModule = createLunarBaseModule(entity, world, baseTextures);
-    return { graphic: baseModule.root, light: new Graphics(), baseModule };
+function facility(entity: WorldEntity, baseTextures?: BaseTextures): { graphic: Container; light: Graphics } {
+  if (worldBankAsset(entity) && baseTextures) {
+    return { graphic: createLunarBaseModule(entity, baseTextures), light: new Graphics() };
   }
   const graphic = new Graphics();
+  if (entity.name === "Ice cave") {
+    graphic.ellipse(0, 29, 40, 18).fill(0x5e6470);
+    graphic.poly([-43,22,-35,-2,-22,-16,-9,-10,8,-20,26,-8,42,23,25,42,-23,40]).fill(0x777d88);
+    graphic.poly([-20,33,-14,1,7,-2,24,30]).fill(0x203449);
+    graphic.poly([-13,30,-7,12,1,16,6,32]).fill(0x9bdce6);
+    graphic.poly([3,31,11,9,18,19,18,32]).fill(0xc2f2f1);
+    graphic.poly([-35,2,-22,-16,-9,-10,-17,3,-23,15]).fill(0xb0b1b3);
+    graphic.poly([8,-20,26,-8,33,9,20,5]).fill(0x979da8);
+    return { graphic, light: new Graphics() };
+  }
   const { width, height } = entity.footprint;
   const palettes: Record<FacilityKind, readonly number[]> = {
     habitat: [0xf0e6ce, 0xb0aa96, 0xd0c6ad],
@@ -89,7 +98,6 @@ interface TileVisual {
   sides: Graphics; sideDepths: { row: number; col: number };
   object: Container | null; objectY: number; active: boolean; presence: Presence; curvature: HeightMotion; fade: HeightMotion; offset: number; opacity: number;
   entity?: WorldEntity; silhouette?: readonly Point[];
-  baseModule?: BaseModuleVisual;
   node?: { badge: Text; symbol: string; color: number }; light?: Graphics;
 }
 /** Retain the overlap between circles; only entering/leaving cells allocate or dispose geometry. */
@@ -208,7 +216,7 @@ export class WorldScene {
       const object = new Container(); const origin = gridToWorld(entity.position);
       object.position.set(origin.x, origin.y);
       object.zIndex = entity.position.col + entity.position.row + entity.footprint.width + entity.footprint.height;
-      const { graphic, light, baseModule } = facility(entity, this.world, this.baseTextures);
+      const { graphic, light } = facility(entity, this.baseTextures);
       const symbol = entity.interaction.type === "task" ? ({ samples: "◆", safety: "≋", garden: "✿" }[entity.interaction.taskId] ?? "?") : entity.interaction.type === "base" ? "⌂" : ({ "oxygen-01": "O₂", "water-01": "◒", "solar-01": "ϟ", "shield-01": "◇", "sample-01": "✦" }[entity.id] ?? "+");
       const color = entity.interaction.type === "task" ? 0xdbb2ff : entity.id === "water-01" ? 0x78bbff : entity.id === "solar-01" ? 0xffdb85 : 0x93f1d7;
       const center = gridToWorld({ col: entity.footprint.width / 2, row: entity.footprint.height / 2 });
@@ -217,7 +225,7 @@ export class WorldScene {
       badge.anchor.set(0.5); badge.position.set(center.x, center.y - entity.height - 22);
       object.addChild(graphic, light, marker, badge); this.objects.addChild(object);
       if (entity.prefab && this.baseTextures) { marker.visible = false; badge.visible = false; }
-      Object.assign(visual, { object, objectY: object.y, node: { badge, symbol, color }, light, baseModule, silhouette: entitySilhouette(entity) });
+      Object.assign(visual, { object, objectY: object.y, node: { badge, symbol, color }, light, silhouette: entitySilhouette(entity) });
     } else if (!entity && tile.terrain === "rock") {
       const object = new Container(); const rock = new Graphics();
       if (moon) {
@@ -252,11 +260,6 @@ export class WorldScene {
       // Viewport culling and partial opacity do not make terrain stop occluding.
       const rowNeighbor = this.cells.get(`${cell.tile.col},${cell.tile.row + 1}`);
       const colNeighbor = this.cells.get(`${cell.tile.col + 1},${cell.tile.row}`);
-      if (cell.baseModule) {
-        const depth = (neighbor: TileVisual | undefined) => neighbor && neighbor.entity?.prefab?.id === cell.entity?.prefab?.id && neighbor.ground.alpha > 0
-          ? Math.max(0, Math.min(BASE_HULL_HEIGHT, neighbor.offset - cell.offset)) : BASE_HULL_HEIGHT;
-        cell.baseModule.setSideDepths(depth(rowNeighbor), depth(colNeighbor));
-      }
       const row = exposedSideDepth(cell.offset, rowNeighbor && rowNeighbor.ground.alpha > 0 ? rowNeighbor.offset : undefined);
       const col = exposedSideDepth(cell.offset, colNeighbor && colNeighbor.ground.alpha > 0 ? colNeighbor.offset : undefined);
       if (row === cell.sideDepths.row && col === cell.sideDepths.col) continue;

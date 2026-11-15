@@ -1,7 +1,7 @@
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Text } from "pixi.js";
 import { HOME_DOORWAY, HOME_ENTRY, HOME_EXIT, HOME_SIZE, HOME_THRESHOLD, HOME_TRANSITION_MS, homePath, insideHome, isHomeDoorway } from "../world/home";
 import { footprintPolygon, gridToWorld, tileCenter, worldToGrid } from "../world/isometric";
-import type { GridPosition, Point } from "../world/types";
+import type { GridPosition, Point, WorldPresentation } from "../world/types";
 import { beginWalk, heightAt, walkAt, type HeightMotion, type WalkMotion } from "./motion";
 import { createAstronaut, type AstronautAtlas } from "./astronaut";
 import { gridCrossingPosition, homePartReveal } from "./home-transition";
@@ -10,7 +10,7 @@ import { AirlockVisual } from "./airlock-visual";
 
 const flat = (points: readonly Point[]) => points.flatMap((p) => [p.x, p.y]);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-interface RoomPart { container: Container; center: Point; position: GridPosition }
+interface RoomPart { container: Container; center: Point; position: GridPosition; station?: "food" | "melt" | "exercise" }
 interface Placement { home: Point; outsidePlayer: Point }
 
 /** A local presentation level. Interior steps never enter the campaign action log. */
@@ -37,7 +37,15 @@ export class HomeInterior {
   private arriving = false;
   private departing = false;
   private exitQueued = false;
-  constructor(private readonly changed: (inside: boolean) => void, atlas?: AstronautAtlas) {
+  private tutorial: WorldPresentation["tutorial"];
+  private pendingStation: "food" | "melt" | "exercise" | null = null;
+  private readonly stations = [
+    { id: "food" as const, position: { col: 1, row: 1 }, label: "Kitchen", color: 0xe5b75d },
+    { id: "melt" as const, position: { col: 3, row: 1 }, label: "Melt", color: 0x9edee8 },
+    { id: "exercise" as const, position: { col: 3, row: 3 }, label: "Move", color: 0xb0dca4 },
+  ];
+  constructor(private readonly changed: (inside: boolean) => void, atlas?: AstronautAtlas,
+    private readonly activateStation?: (id: "food" | "melt" | "exercise") => void) {
     this.astronaut = createAstronaut(atlas); this.traveler = createAstronaut(atlas);
     this.crossingAvatar = this.traveler.root;
     const back = new Container(), floor = new Container(), front = new Container();
@@ -78,6 +86,26 @@ export class HomeInterior {
     }
     this.parts.push({ container: this.airlockVisual.root, center: door, position: HOME_EXIT });
     this.root.addChild(back, floor, this.airlockVisual.root, this.routeGraphic, this.hover, this.selection, this.astronaut.root, front);
+    const equipment = new Container(); this.root.addChildAt(equipment, this.root.children.length - 2);
+    for (const station of this.stations) {
+      const center = tileCenter(station.position), container = new Container(), graphic = new Graphics();
+      container.position.set(center.x, center.y); container.visible = false;
+      if (station.id === "exercise") {
+        graphic.poly([-23,-3,-7,-12,23,1,7,10]).fill(0x4e606a).stroke({ color: 0xb3c8c0, width: 1.5 });
+        graphic.moveTo(-16,-6).lineTo(-16,-27).lineTo(6,-16).lineTo(6,5).stroke({ color: station.color, width: 3 });
+      } else {
+        graphic.roundRect(-20,-29,40,28,5).fill(0xe3d9c3).stroke({ color: 0x879d9f, width: 1.5 });
+        graphic.roundRect(-15,-24,30,15,3).fill(0x314c5e);
+        if (station.id === "melt") graphic.poly([-9,-9,-5,-22,3,-19,8,-9]).fill(station.color);
+        else for (const x of [-9,0,9]) graphic.circle(x,-16,3).fill(station.color);
+        graphic.roundRect(-20,-6,40,6,2).fill(0x697983);
+      }
+      graphic.circle(0,-36,4).fill(station.color);
+      const label = new Text({ text: station.label, style: { fontFamily: "Arial", fontSize: 10, fill: 0xe3ece3 } });
+      label.anchor.set(.5,1); label.position.set(0,-43);
+      container.addChild(graphic,label); equipment.addChild(container);
+      this.parts.push({ container, center, position: station.position, station: station.id });
+    }
     this.placePlayer(HOME_ENTRY, 0, false);
   }
   get open() { return this.engaged; }
@@ -87,6 +115,11 @@ export class HomeInterior {
   get moving() { return !!this.motion || this.route.length > 0 || this.arriving || this.departing; }
   get interactive() { return this.engaged && !this.arriving && !this.departing && this.transition.to === 1 && this.amount === 1; }
   get airlock() { return !this.engaged ? airlockAt(1, "exit") : this.departing ? airlockAt(1 - this.amount, "exit") : airlockAt(this.amount, "enter"); }
+  setTutorialState(tutorial: WorldPresentation["tutorial"]) { this.tutorial = tutorial; }
+  private finishStation() {
+    const id = this.pendingStation; this.pendingStation = null;
+    if (id && this.tutorial && (id === this.tutorial.current || id === "exercise" && !this.tutorial.current && this.tutorial.exercisePending)) this.activateStation?.(id);
+  }
   enter(now: number) {
     if (this.engaged) return;
     this.engaged = true; this.position = { ...HOME_ENTRY }; this.visual = { ...HOME_THRESHOLD };
@@ -109,12 +142,14 @@ export class HomeInterior {
   walkTo(target: GridPosition, now: number) {
     if (!this.interactive) return;
     const path = homePath(this.motion?.to ?? this.position, target); if (!path) return;
+    this.pendingStation = this.tutorial ? this.stations.find(s => s.position.col === target.col && s.position.row === target.row)?.id ?? null : null;
     this.route = path; this.pulse = now;
     this.highlight(this.selection, target);
     this.routeGraphic.clear();
     let previous = tileCenter(this.visual);
     for (const step of path) { const p = tileCenter(step); this.routeGraphic.moveTo(previous.x, previous.y).lineTo(p.x, p.y).stroke({ color: 0x397f73, alpha: .5, width: 2 }); previous = p; }
     if (!this.motion) this.beginStep(now, true);
+    if (!this.motion && !this.route.length) this.finishStation();
   }
   move(direction: GridPosition, now: number) {
     if (this.motion || !this.interactive) return;
@@ -156,7 +191,7 @@ export class HomeInterior {
       if (!sample.done && !reduced) break;
       this.position = { ...motion.to }; this.stride++;
       this.beginStep(reduced ? now : motion.start + motion.duration, false);
-      if (!this.motion) this.routeGraphic.clear();
+      if (!this.motion) { this.routeGraphic.clear(); this.finishStation(); }
     }
     this.amount = reduced ? this.transition.to : heightAt(this.transition, now);
     if (this.arriving) {
@@ -182,7 +217,9 @@ export class HomeInterior {
       const reveal = homePartReveal(this.amount, part.position);
       part.container.position.set(part.center.x, part.center.y);
       part.container.scale.set(1);
-      part.container.alpha = reveal; part.container.visible = reveal > 0;
+      part.container.alpha = reveal;
+      part.container.visible = reveal > 0 && (!part.station || !!this.tutorial);
+      if (part.station && this.tutorial) part.container.alpha *= this.tutorial.completed.includes(part.station) ? .55 : 1;
     }
     // One screen-space astronaut bridges both scenes. It never fades or duplicates.
     const feet = tileCenter(this.visual);

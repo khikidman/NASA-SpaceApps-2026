@@ -1,6 +1,6 @@
 import { RESOURCE_NAMES } from "@/data/missions";
 import { RESOURCE_KEYS, type ResourceDelta } from "@/game/types";
-const SYMBOLS = { oxygen: "O₂", water: "◒", power: "ϟ", shielding: "◇", science: "✦" };
+const SYMBOLS = { oxygen: "O₂", water: "◒", power: "ϟ", shielding: "◇", science: "✦", energy: "☀" };
 export function ResourceEffects({ effects, hours = 0, compact = false }: { effects: ResourceDelta; hours?: number; compact?: boolean }) {
   return <span className={`effects ${compact ? "effects-compact" : ""}`}>{RESOURCE_KEYS.filter((key) => effects[key]).map((key) => {
     const n = effects[key]!;

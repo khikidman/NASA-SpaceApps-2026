@@ -17,6 +17,7 @@ import { useExplorer } from "./use-explorer";
 import { Starfield } from "./starfield";
 import { AIRLOCK_LABELS, type AirlockStatus } from "@/world/airlock";
 import { atHomeDoor } from "@/world/home";
+import { DAY1_CONFIG, DAY1_TASKS, isDayOne, nextDayOneTask } from "@/data/day-one";
 
 type ViewStatus = "loading" | "ready" | "unavailable" | "recovering";
 
@@ -26,6 +27,8 @@ export function WorldView({ world, presentation, game, act, onOpen, target, onHo
   const [inside, setInside] = useState(false);
   const [airlock, setAirlock] = useState<AirlockStatus | null>(null);
   const homeChanged = useRef(onHomeChange);
+  const opening = useRef(onOpen);
+  const [homeTip, showHomeTip] = useState(false);
   const session = useExplorer(world, game, act, (id) => {
     if (world.entities.find((node) => node.id === id)?.interaction.type === "base") renderer.current?.enterHome();
     else onOpen(id);
@@ -51,7 +54,7 @@ export function WorldView({ world, presentation, game, act, onOpen, target, onHo
     if (node && inRenderRange(node.position, game.position)) { requested.current = target; selection.current(node.position); }
   }, [inside, target, status, world, game.position]);
 
-  useEffect(() => { movement.current = move; selection.current = select; interaction.current = session.interact; completion.current = session.complete; homeChanged.current = onHomeChange; });
+  useEffect(() => { movement.current = move; selection.current = select; interaction.current = session.interact; completion.current = session.complete; homeChanged.current = onHomeChange; opening.current = onOpen; });
   useEffect(() => {
     latestRenderState.current = renderState;
     renderer.current?.setExplorer(renderState);
@@ -85,6 +88,8 @@ export function WorldView({ world, presentation, game, act, onOpen, target, onHo
         onContextChange: (available) => setStatus(available ? "ready" : "recovering"),
         onHomeChange: (value) => { setInside(value); homeChanged.current(value); },
         onAirlockChange: setAirlock,
+        onHomeStation: (id) => opening.current(`tutorial:${id}`),
+        onHomeGuidance: () => showHomeTip(true),
       }, controller.signal);
       if (controller.signal.aborted) { instance.destroy(); return; }
       renderer.current = instance;
@@ -110,13 +115,17 @@ export function WorldView({ world, presentation, game, act, onOpen, target, onHo
   const selectedNode = entityAt(world, selected);
   const node = selectedNode ?? world.entities.find((entry) => entry.interaction.type !== "base" && adjacent(explorer.position, entry.position));
   const canInteract = !!node && (node.interaction.type === "base" ? atHomeDoor(explorer.position, world.home) : adjacent(explorer.position, node.position)) && !session.pending;
-  const supply = node?.interaction.type === "resource" ? RESOURCE_NODES[node.id] : undefined;
-  const task = node?.interaction.type === "task" ? getTask(game.missionId, node.interaction.taskId) : undefined;
-  const used = !!node && (game.collectedNodes.includes(node.id) || !!task && (game.taskProgress[task.id] ?? 0) >= task.steps.length);
+  const dayOne = isDayOne(game), currentQuest = nextDayOneTask(game);
+  const quest = dayOne && node ? DAY1_TASKS.find(t => !t.inside && t.nodeId === node.id) : undefined;
+  const questLocked = !!quest && quest.id !== currentQuest?.id;
+  const laterMission = dayOne && node?.interaction.type === "task" && !quest;
+  const supply = !quest && node?.interaction.type === "resource" ? RESOURCE_NODES[node.id] : undefined;
+  const task = !dayOne && node?.interaction.type === "task" ? getTask(game.missionId, node.interaction.taskId) : undefined;
+  const used = !!quest && game.tutorial.completed.includes(quest.id) || !!node && (game.collectedNodes.includes(node.id) || !!task && (game.taskProgress[task.id] ?? 0) >= task.steps.length);
   const full = !!supply && game.resources[supply.resource] >= (supply.resource === "science" ? 10000 : 100);
-  const enough = !supply || canAfford(game.resources, supply.effects) && game.timeLeft >= supply.hours;
-  const nodeArt: Art = task ? MISSION_VISUALS[task.id].art : supply ? ({ oxygen: "air", water: "water", power: "solar", shielding: "shield", science: "star" } as const)[supply.resource] : "home";
-  const label = task ? MISSION_VISUALS[task.id].label : supply ? ({ oxygen: "Air", water: "Water", power: "Power", shielding: "Shield", science: "Discovery" } as const)[supply.resource] : "Home";
+  const enough = !(dayOne && supply?.resource === "science") && (!supply || canAfford(game.resources, supply.effects) && game.timeLeft >= supply.hours);
+  const nodeArt: Art = quest ? quest.id === "comms" ? "radio" : quest.id === "detector" ? "sensor" : "water" : task ? MISSION_VISUALS[task.id].art : supply ? ({ oxygen: "air", water: "water", power: "solar", shielding: "shield", science: "star", energy: "sun" } as const)[supply.resource] : "home";
+  const label = quest ? quest.title : task ? MISSION_VISUALS[task.id].label : supply ? ({ oxygen: "Air", water: "Water", power: "Power", shielding: "Shield", science: "Discovery", energy: "Energy" } as const)[supply.resource] : "Home";
   const actual = supply ? Object.fromEntries(Object.entries(supply.effects).map(([key, value]) => [key, value > 0 ? Math.min(value, (key === "science" ? 10000 : 100) - game.resources[key as keyof typeof game.resources]) : value])) : {};
 
   function worldAction(action: () => void) {
@@ -145,13 +154,14 @@ export function WorldView({ world, presentation, game, act, onOpen, target, onHo
         <output className="sr-only" aria-label="World zoom">{Math.round(zoom * 100)}%</output>
       </div>
       {padVisible && <div className="touch-pad" role="group" aria-label="Move astronaut">{([['west', '↖'], ['north', '↗'], ['south', '↙'], ['east', '↘']] as const).map(([direction, arrow]) => <button key={direction} type="button" disabled={!ready} onClick={() => worldAction(() => inside ? renderer.current?.moveHome(DIRECTIONS[direction]) : move(DIRECTIONS[direction]))} aria-label={`Move ${direction}`}>{arrow}</button>)}</div>}
-      {inside && <aside className={`context-action home-action ${airlock?.cycling ? "airlock-cycling" : ""}`} aria-label="Home base controls"><GameArt name={airlock?.cycling ? "air" : "home"} size={42} /><div className="context-summary"><strong>{airlock?.cycling ? "Airlock" : "Home base"}</strong><span role="status">{airlock ? AIRLOCK_LABELS[airlock.phase] : "Airlock ready"}</span>{airlock?.cycling && <span className="airlock-pips" aria-hidden="true"><i /><i /><i /></span>}</div><button type="button" className="context-use" disabled={!ready || !!airlock?.cycling} onClick={() => worldAction(() => renderer.current?.exitHome())} aria-label="Leave home base">Exit ↗</button></aside>}
+      {inside && <aside className={`context-action home-action ${airlock?.cycling ? "airlock-cycling" : ""}`} aria-label="Home base controls"><GameArt name={airlock?.cycling ? "air" : "home"} size={42} /><div className="context-summary"><strong>{airlock?.cycling ? "Airlock" : "Home base"}</strong><span role="status">{airlock ? AIRLOCK_LABELS[airlock.phase] : "Airlock ready"}</span>{airlock?.cycling && <span className="airlock-pips" aria-hidden="true"><i /><i /><i /></span>}</div>{dayOne && game.resources.oxygen < 100 && <button type="button" className="context-use refill-air" disabled={!ready || !!airlock?.cycling || game.resources.power <= 1} onClick={() => worldAction(() => act({ type: "tutorial-refill" }))} aria-label="Refill air"><span>Refill air</span><ResourceEffects effects={{ ...DAY1_CONFIG.refillCost, oxygen: 100 - game.resources.oxygen }} compact /></button>}<button type="button" className="context-use" disabled={!ready || !!airlock?.cycling} onClick={() => worldAction(() => renderer.current?.exitHome())} aria-label="Leave home base">Exit ↗</button></aside>}
       {!inside && node && <aside className={`context-action ${canInteract ? "in-reach" : "on-way"}`} aria-label="Nearby action">
         <GameArt name={used ? "check" : nodeArt} size={42} /><div className="context-summary"><strong>{label}</strong>{supply && !used && <ResourceEffects effects={actual} hours={supply.hours} compact />}{!canInteract && <span className="walking-dots" aria-label="Walk beside this stop"><i /><i /><i /></span>}</div>
-        <button type="button" className="context-use" disabled={!ready || !canInteract || used || full || !enough || game.status !== "playing"} onClick={() => worldAction(session.interact)} aria-label={task ? `Play ${task.title}` : supply ? `Collect ${label}` : "Enter home base"}>{used ? "✓" : full ? "Full" : !enough ? "Need supplies" : supply ? "Collect" : task ? "Play" : "Enter"}<kbd>E</kbd></button>
+        <button type="button" className="context-use" disabled={!ready || !canInteract || used || full || !enough || questLocked || laterMission || game.status !== "playing"} onClick={() => worldAction(session.interact)} aria-label={quest ? `Play ${quest.title}` : task ? `Play ${task.title}` : supply ? `Collect ${label}` : "Enter home base"}>{used ? "✓" : questLocked || laterMission ? "Later" : full ? "Full" : !enough ? "Need supplies" : supply ? "Collect" : quest || task ? "Play" : "Enter"}<kbd>E</kbd></button>
       </aside>}
       <p className="sr-only" id="world-selection" aria-live="polite" data-player-position={`${explorer.position.col},${explorer.position.row}`}>{inside ? "Inside home base. Five by five floor, walls, and an exit doorway. Click or use arrows to walk. Escape leaves." : `${node?.name ?? "Clear ground"}. Square ${explorer.position.col}, ${explorer.position.row}.`}</p>
       <p className="sr-only" id="world-controls-help">Click a stop to walk beside it. Use its action button or E to interact. Arrow keys or WASD move. Drag to pan, scroll to zoom.</p>
+      {homeTip && dayOne && <button className="home-pointer-lesson" onClick={() => showHomeTip(false)}><GameArt name="home" size={28} />Follow this arrow home ↗ <span>✓</span></button>}
       {session.notice && <p className="navigation-hint" role="status">{session.notice}</p>}
 
 

@@ -7,13 +7,14 @@ import { createOutpost } from "../world/map";
 import { applyAction, canEndDay, checkAnswer, createGame, previewNight } from "./engine";
 import { finishTask, playDay, walkToNode } from "./test-helpers";
 import { RESOURCE_KEYS } from "./types";
+const regularGame = (seed: number) => ({ ...createGame(seed), day: 2 });
 describe("learning journey", () => {
   it("starts on Moon day 1, rejects early travel and finishing without learning", () => {
     const game = createGame(10);
     expect(game).toMatchObject({ missionId: "moon", day: 1, timeLeft: 16, knowledgeEarned: 0 });
     expect(game.resources.science).toBe(6);
     expect(() => applyAction(game, { type: "travel" })).toThrow("7 Moon days");
-    expect(() => applyAction(game, { type: "end-day", choiceId: "recycle" })).toThrow("whole challenge");
+    expect(() => applyAction(game, { type: "end-day", choiceId: "recycle" })).toThrow("five missions");
     for (const seed of [-1, 1.5, NaN, Infinity, 0x100000000]) expect(() => createGame(seed)).toThrow();
   });
   it("validates movement and collection proximity; caps tanks and prevents farming", () => {
@@ -29,7 +30,7 @@ describe("learning journey", () => {
     expect(original).toEqual(snapshot);
   });
   it("charges each successful subtask and counts gross knowledge separately from the bank", () => {
-    let game = walkToNode(createGame(2), "lab-01");
+    let game = walkToNode(regularGame(2), "lab-01");
     const before = structuredClone(game);
     expect(() => applyAction(game, { type: "submit", nodeId: "lab-01", answers: ["craters-1"] })).toThrow("No supplies were used");
     expect(game).toEqual(before);
@@ -41,7 +42,7 @@ describe("learning journey", () => {
     expect(() => applyAction(game, { type: "submit", nodeId: "lab-01", answers: ["jar", "air"] })).toThrow("finished this challenge");
   });
   it("enforces knowledge and time costs even when an optional item rewards knowledge", () => {
-    const game = walkToNode(createGame(1), "lab-01");
+    const game = walkToNode(regularGame(1), "lab-01");
     const step = TASKS.moon[0].steps[1];
     const second = { ...game, taskProgress: { samples: 1 }, resources: { ...game.resources, science: 1 } };
     expect(() => applyAction(second, { type: "submit", nodeId: "lab-01", answers: ["jar", "air", "camera"] })).toThrow("more supplies or knowledge");
@@ -53,7 +54,7 @@ describe("learning journey", () => {
   it("supports all six challenges and validates sequence order", () => {
     for (const missionId of ["moon", "mars"] as const) {
       for (const task of TASKS[missionId]) {
-        const game = { ...createGame(1), missionId };
+        const game = { ...regularGame(1), missionId };
         const node = createOutpost(1, missionId).entities.find((n) => n.interaction.type === "task" && n.interaction.taskId === task.id)!;
         const after = finishTask(game, node.id);
         expect(after.taskProgress[task.id]).toBe(2); expect(canEndDay(after)).toBe(true);
@@ -65,7 +66,7 @@ describe("learning journey", () => {
     }
   });
   it("allows a limited daily learning boost and chooses world events from conditions", () => {
-    const game = applyAction(createGame(1), { type: "learn" });
+    const game = applyAction(regularGame(1), { type: "learn" });
     expect(game.dayKnowledge).toBe(2); expect(game.timeLeft).toBe(14);
     expect(() => applyAction(game, { type: "learn" })).toThrow("read today");
     expect(getDailyEvent({ ...game, day: 2 }).id).toBe("moonquake");
@@ -74,7 +75,7 @@ describe("learning journey", () => {
     expect(getDailyEvent({ ...game, day: 3, resources: { ...game.resources, shielding: 5 } }).id).toBe("sun-alert");
   });
   it("previews all night changes and resolves survival before a final-day unlock", () => {
-    const game = { ...finishTask(createGame(1)), day: 7 };
+    const game = { ...finishTask(regularGame(1)), day: 7 };
     const preview = previewNight(game, "recycle"); const after = applyAction(game, { type: "end-day", choiceId: "recycle" });
     expect(after.resources).toEqual(preview.resources); expect(after.status).toBe("level-complete");
     expect(after.history[0].after).not.toBe(after.resources);

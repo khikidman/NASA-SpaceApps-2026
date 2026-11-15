@@ -1,5 +1,5 @@
 import type { GridPosition } from "../world/types";
-export const RESOURCE_KEYS = ["oxygen", "water", "power", "shielding", "science"] as const;
+export const RESOURCE_KEYS = ["oxygen", "water", "power", "energy", "shielding", "science"] as const;
 export type Resource = (typeof RESOURCE_KEYS)[number];
 export type Resources = Record<Resource, number>;
 export type ResourceDelta = Partial<Resources>;
@@ -18,6 +18,9 @@ export interface TurnSummary {
   before: Resources; after: Resources; knowledge: number;
 }
 export type GameAction =
+  | { type: "tutorial-submit"; taskId: TutorialTaskId; input: TutorialInput }
+  | { type: "tutorial-exercise"; method: "cardio" | "weights" | "skip"; repetitions: number }
+  | { type: "tutorial-refill" }
   | { type: "move"; position: GridPosition }
   | { type: "collect"; nodeId: string }
   | { type: "submit"; nodeId: string; answers: string[] }
@@ -33,7 +36,15 @@ export interface GameState {
   discoveries: readonly { world: WorldId; day: number; fact: string; sourceId: string }[];
   completedLevels: readonly WorldId[]; history: readonly TurnSummary[];
   actions: readonly GameAction[]; feedback: string;
+  tutorial: { completed: readonly TutorialTaskId[]; ice: number; exercise: "pending" | "cardio" | "weights" | "skipped"; fatigue: boolean };
 }
+export type TutorialTaskId = "comms" | "detector" | "ice" | "food" | "melt";
+export type TutorialInput =
+  | { kind: "repair"; pairs: string[]; tuning: number }
+  | { kind: "calibrate"; placed: boolean; reading: number }
+  | { kind: "collect"; pieces: string[] }
+  | { kind: "assemble"; parts: string[] }
+  | { kind: "convert"; loaded: boolean; heat: number };
 export interface TaskOption { id: string; label: string; weight?: number; effects?: ResourceDelta }
 export interface TaskStep {
   id: string; kind: "pick" | "pack" | "order"; prompt: string; hint: string; fact: string; sourceId: string;

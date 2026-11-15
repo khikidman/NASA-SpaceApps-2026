@@ -1,10 +1,11 @@
+import { DAY1_TASKS, isDayOne } from "../data/day-one";
 import { getDailyEvent } from "../data/events";
 import { getTask, RESOURCE_NODES } from "../data/tasks";
 import { adjacent, walkable } from "../world/exploration";
 import { createOutpost } from "../world/map";
 import type { GridPosition } from "../world/types";
 import { applyAction } from "./engine";
-import type { GameState } from "./types";
+import type { GameState, TutorialInput } from "./types";
 /** Exercise legal movement and node actions, rather than editing scores or unlocks. */
 export function walkToNode(state: GameState, nodeId: string): GameState {
   const world = createOutpost(state.seed, state.missionId);
@@ -30,6 +31,21 @@ export function finishTask(state: GameState, nodeId = "lab-01"): GameState {
   return state;
 }
 export function playDay(state: GameState): GameState {
+  if (isDayOne(state)) {
+    const inputs: TutorialInput[] = [
+      { kind: "repair", pairs: ["triangle", "circle", "square"], tuning: 50 },
+      { kind: "calibrate", placed: true, reading: 50 },
+      { kind: "collect", pieces: ["ice-a", "ice-b", "ice-c"] },
+      { kind: "assemble", parts: ["gear", "filter", "tray"] },
+      { kind: "convert", loaded: true, heat: 50 },
+    ];
+    for (const [index, task] of DAY1_TASKS.entries()) {
+      state = walkToNode(state, task.nodeId);
+      state = applyAction(state, { type: "tutorial-submit", taskId: task.id, input: inputs[index] });
+    }
+    state = applyAction(state, { type: "tutorial-exercise", method: "cardio", repetitions: 4 });
+    return applyAction(state, { type: "end-day", choiceId: getDailyEvent(state).choices[0].id });
+  }
   for (const [nodeId, config] of Object.entries(RESOURCE_NODES)) {
     if (state.resources[config.resource] < (config.resource === "science" ? 10000 : 100)) {
       state = walkToNode(state, nodeId); state = applyAction(state, { type: "collect", nodeId });

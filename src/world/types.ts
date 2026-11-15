@@ -23,7 +23,7 @@ export interface Bounds {
 
 export type Terrain = "sand" | "rock" | "path" | "pad";
 export type FacilityKind = "habitat" | "solar" | "oxygen" | "lab" | "shield";
-export type BaseModuleKind = "hull" | "airlock" | "vent-intake" | "vent-exhaust" | "antenna" | "dome";
+export type BaseModuleKind = "habitat" | "research" | "greenhouse" | "airlock" | "solar" | "comms" | "junction" | "flag";
 
 export interface WorldTile extends GridPosition {
   terrain: Terrain;
@@ -33,6 +33,7 @@ export interface WorldTile extends GridPosition {
 export type NodeInteraction = { type: "base" } | { type: "resource" } | { type: "task"; taskId: string };
 
 export interface WorldEntity {
+  artId?: string;
   prefab?: { id: "lunar-base"; module: BaseModuleKind };
   interaction: NodeInteraction;
   id: string;
@@ -75,6 +76,7 @@ export interface MissionTarget { nodeId: string; request: number; world: "moon" 
 
 /** Presentation only. The renderer cannot change mission resources. */
 export interface WorldPresentation {
+  tutorial?: { current: string | null; completed: readonly string[]; exercisePending: boolean };
   lowPower: boolean;
   lowOxygen: boolean;
   missionEnded: boolean;
