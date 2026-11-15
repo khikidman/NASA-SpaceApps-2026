@@ -1,0 +1,8 @@
+{
+  "tool": "built-in image_gen",
+  "reference": "veggie_led_grow_light.png",
+  "base": {
+    "state": "white-low",
+    "prompt": "Use case: stylized-concept. Create a transparent isometric game sprite of the LED grow-light fixture in attached reference image 1. Only that freestanding horizontal lamp, two vertical supports and two small mounting feet; no planter, plants, floor tile, cables or scenery. Preserve charcoal rectangular lamp housing, light gray beveled end caps and mounting feet, slim charcoal support columns. Low-poly softly beveled toy-like 3D lunar game art, upper-left illumination. Exact orthographic 2:1 isometric projection, long beam rises toward upper right at slope 1:2, vertical posts vertical, identical feet on one ground plane. Occupies an elongated 1x2 grid footprint (logical projection 144 pixels wide by 72 deep). Composition on square 1024x1024 canvas: feet centered near (240,785) and (785,512); fixture completely visible, about 80% canvas width, comfortable transparent padding. State WHITE LOW POWER: front-facing LED diffuser softly lit cool neutral white, modest localized bloom, no cast light cone. Do not darken fixture body. Transparent background with clean alpha, no dark backdrop, no labels, no text, no grid, no extra objects. This is one fixture sprite, not a sprite sheet."
+  }
+}

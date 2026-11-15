@@ -1,0 +1,26 @@
+{
+  "assetId": "moon-flag",
+  "footprint": {
+    "width": 1,
+    "height": 1
+  },
+  "logicalTile": {
+    "width": 96,
+    "height": 48
+  },
+  "sprite": "moon-flag.png",
+  "package": "moon-flag.assetlab.json",
+  "brightness": 1,
+  "contrast": 1,
+  "saturation": 1,
+  "scale": 0.1,
+  "anchorX": 0.40669856459330145,
+  "anchorY": 0.8293460925039873,
+  "frameWidth": 1254,
+  "frameHeight": 1254,
+  "groundAnchorPixels": {
+    "x": 510,
+    "y": 1040
+  },
+  "note": "Lab placement metadata only; gameplay collision and binding are not applied."
+}

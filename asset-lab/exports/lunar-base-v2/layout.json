@@ -1,0 +1,343 @@
+{
+  "format": "asset-lab.modular-layout/v1",
+  "title": "Lunar commons · modular base",
+  "tile": {
+    "width": 96,
+    "height": 48
+  },
+  "spriteContract": {
+    "frameWidth": 1254,
+    "frameHeight": 1254,
+    "anchorX": 0.5,
+    "anchorY": 0.7527910685805422,
+    "scale": 0.08480565371024736,
+    "padWidthPixels": 1132,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
+    "portHeight": "Shared collar height; artwork reference only"
+  },
+  "inspiration": [
+    {
+      "title": "ESA Moon Village habitat",
+      "url": "https://www.esa.int/articles/esa-engineers-assess-moon-village-habitat"
+    },
+    {
+      "title": "NASA Moon Base Systems",
+      "url": "https://www.nasa.gov/moonbase-systems/"
+    }
+  ],
+  "scope": "Lab-only game-scale concept; no game integration or engineering-performance claims.",
+  "assets": [
+    {
+      "id": "base-habitat",
+      "title": "Living habitat",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [
+        "col-",
+        "col+",
+        "row-",
+        "row+"
+      ],
+      "image": "base-habitat.png",
+      "package": "base-habitat.assetlab.json",
+      "sha256": "a1d89f36b10bc4257b331e4d84c5d5325d859d78d766fb57014f23a4e5efe603",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    {
+      "id": "base-lab",
+      "title": "Research lab",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [
+        "col-",
+        "col+",
+        "row-",
+        "row+"
+      ],
+      "image": "base-lab.png",
+      "package": "base-lab.assetlab.json",
+      "sha256": "70e5c127eaf8428f5df5f60a177b7d1ce0749c812cb9383ce9e9efee710cda63",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    {
+      "id": "base-greenhouse",
+      "title": "Greenhouse",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [
+        "col-",
+        "col+",
+        "row-",
+        "row+"
+      ],
+      "image": "base-greenhouse.png",
+      "package": "base-greenhouse.assetlab.json",
+      "sha256": "a3a9b33f32c19493874132ceb48eadd2e38572faa0ce508fa68ad62e826d54b5",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    {
+      "id": "base-airlock",
+      "title": "Airlock / logistics",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [
+        "col-",
+        "col+",
+        "row-",
+        "row+"
+      ],
+      "image": "base-airlock.png",
+      "package": "base-airlock.assetlab.json",
+      "sha256": "9bff7cf11a5f32997e720fee5cfebc3fd3b17e6b4b5e674054e12d9218193afd",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    {
+      "id": "base-solar",
+      "title": "Solar array",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [],
+      "image": "base-solar.png",
+      "package": "base-solar.assetlab.json",
+      "sha256": "dfa022441d0b691cd56a000f8a83ab3c7a3eaaf237975a331247b46a8f7bdae9",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    {
+      "id": "base-comms",
+      "title": "Communications",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [],
+      "image": "base-comms.png",
+      "package": "base-comms.assetlab.json",
+      "sha256": "1eb974016de28efe20c5c9569a22724c33b644d67b0d30de605475933e4ae13b",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    {
+      "id": "tunnel-col",
+      "title": "Tunnel · column axis",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [
+        "col-",
+        "col+"
+      ],
+      "image": "tunnel-col.png",
+      "package": "tunnel-col.assetlab.json",
+      "sha256": "ef8bbe60920da786cda994b4f09502f0289ff1edee5a1659101c90620f5c9c52",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    {
+      "id": "tunnel-row",
+      "title": "Tunnel · row axis",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [
+        "row-",
+        "row+"
+      ],
+      "image": "tunnel-row.png",
+      "package": "tunnel-row.assetlab.json",
+      "sha256": "653910dd75edc138517ccb3ff8896a683739624ec86c8a1a0206611c591c8589",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    },
+    {
+      "id": "tunnel-cross",
+      "title": "Tunnel · four-way junction",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "ports": [
+        "col-",
+        "col+",
+        "row-",
+        "row+"
+      ],
+      "image": "tunnel-cross.png",
+      "package": "tunnel-cross.assetlab.json",
+      "sha256": "f19024af4962ead3102c482f04959c830a7edb4daecbc1d353ead7cf6a66c257",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.08480565371024736,
+        "anchorX": 0.5,
+        "anchorY": 0.7527910685805422,
+        "frameWidth": 1254,
+        "frameHeight": 1254
+      }
+    }
+  ],
+  "placements": [
+    {
+      "id": "living",
+      "asset": "base-habitat",
+      "col": 2,
+      "row": 4
+    },
+    {
+      "id": "link-living",
+      "asset": "tunnel-col",
+      "col": 3,
+      "row": 4
+    },
+    {
+      "id": "junction",
+      "asset": "tunnel-cross",
+      "col": 4,
+      "row": 4
+    },
+    {
+      "id": "link-lab",
+      "asset": "tunnel-col",
+      "col": 5,
+      "row": 4
+    },
+    {
+      "id": "research",
+      "asset": "base-lab",
+      "col": 6,
+      "row": 4
+    },
+    {
+      "id": "greenhouse",
+      "asset": "base-greenhouse",
+      "col": 4,
+      "row": 2
+    },
+    {
+      "id": "link-greenhouse",
+      "asset": "tunnel-row",
+      "col": 4,
+      "row": 3
+    },
+    {
+      "id": "link-airlock",
+      "asset": "tunnel-row",
+      "col": 4,
+      "row": 5
+    },
+    {
+      "id": "airlock",
+      "asset": "base-airlock",
+      "col": 4,
+      "row": 6
+    },
+    {
+      "id": "solar-a",
+      "asset": "base-solar",
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": "solar-b",
+      "asset": "base-solar",
+      "col": 2,
+      "row": 1
+    },
+    {
+      "id": "solar-c",
+      "asset": "base-solar",
+      "col": 1,
+      "row": 2
+    },
+    {
+      "id": "communications",
+      "asset": "base-comms",
+      "col": 7,
+      "row": 2
+    }
+  ]
+}

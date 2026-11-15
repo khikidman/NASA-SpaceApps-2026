@@ -1,0 +1,174 @@
+{
+  "format": "asset-lab.object-state-set/v1",
+  "id": "led-grow-light",
+  "title": "LED grow light — Day 2",
+  "footprint": {
+    "width": 1,
+    "height": 2
+  },
+  "logicalTile": {
+    "width": 96,
+    "height": 48
+  },
+  "projectedFootprint": {
+    "width": 144,
+    "height": 72,
+    "verticesFromCenter": [
+      [
+        24,
+        -36
+      ],
+      [
+        72,
+        -12
+      ],
+      [
+        -24,
+        36
+      ],
+      [
+        -72,
+        12
+      ]
+    ]
+  },
+  "defaultState": "white-low",
+  "research": "NASA-SpaceApps-Research.pdf, Day 2",
+  "note": "Qualitative power/food game states only. No numeric costs, yields, or spectrum superiority asserted. Lab-only placement metadata; no gameplay code modified.",
+  "researchVerification": "TODO: verify against NASA OSD-766 study before claiming a result.",
+  "states": [
+    {
+      "state": "off",
+      "assetId": "led-grow-off",
+      "spectrum": "none",
+      "power": "off",
+      "food": "inactive",
+      "image": "led-grow-off.png",
+      "package": "led-grow-off.assetlab.json",
+      "sha256": "549d8c447bbb74b6878c4f920d26ee8507a47cde9bb608df23be3b489c463b25",
+      "revisionId": "64fc078c-93f9-43bc-8217-3931ed483353",
+      "brightness": 1,
+      "contrast": 1,
+      "saturation": 1,
+      "scale": 0.12,
+      "anchorX": 0.5,
+      "anchorY": 0.68,
+      "frameWidth": 1254,
+      "frameHeight": 1254
+    },
+    {
+      "state": "white-low",
+      "assetId": "led-grow-white-low",
+      "spectrum": "white",
+      "power": "low",
+      "food": "less",
+      "image": "led-grow-white-low.png",
+      "package": "led-grow-white-low.assetlab.json",
+      "sha256": "03ef876f7e441d6178e8d59225187876b6fdacd19f2479eb874ef5630d14e3b7",
+      "revisionId": "9f03e59d-606a-40cc-8d2d-c5af08b3df3d",
+      "brightness": 1,
+      "contrast": 1,
+      "saturation": 1,
+      "scale": 0.12,
+      "anchorX": 0.5,
+      "anchorY": 0.68,
+      "frameWidth": 1254,
+      "frameHeight": 1254
+    },
+    {
+      "state": "white-high",
+      "assetId": "led-grow-white-high",
+      "spectrum": "white",
+      "power": "high",
+      "food": "more",
+      "image": "led-grow-white-high.png",
+      "package": "led-grow-white-high.assetlab.json",
+      "sha256": "6b7471d1dbb167c8acbc96deeb97c212973a181ada85cbde41c2dd8ffe163980",
+      "revisionId": "3a9dd637-9e71-4da9-bc98-6e735fc3fa0f",
+      "brightness": 1,
+      "contrast": 1,
+      "saturation": 1,
+      "scale": 0.12,
+      "anchorX": 0.5,
+      "anchorY": 0.68,
+      "frameWidth": 1254,
+      "frameHeight": 1254
+    },
+    {
+      "state": "warm-low",
+      "assetId": "led-grow-warm-low",
+      "spectrum": "warm",
+      "power": "low",
+      "food": "less",
+      "image": "led-grow-warm-low.png",
+      "package": "led-grow-warm-low.assetlab.json",
+      "sha256": "4f65406508f31cb7d89e578478e974905776e2436929b906a571e8f7ea65a796",
+      "revisionId": "0b3a553d-d38d-4432-81f8-84449ad64623",
+      "brightness": 1,
+      "contrast": 1,
+      "saturation": 1,
+      "scale": 0.12,
+      "anchorX": 0.5,
+      "anchorY": 0.68,
+      "frameWidth": 1254,
+      "frameHeight": 1254
+    },
+    {
+      "state": "warm-high",
+      "assetId": "led-grow-warm-high",
+      "spectrum": "warm",
+      "power": "high",
+      "food": "more",
+      "image": "led-grow-warm-high.png",
+      "package": "led-grow-warm-high.assetlab.json",
+      "sha256": "f8af348e63a0c3528d9dc61ef3dc1155cd43b3ef0231802e162a2aa140abf40d",
+      "revisionId": "6b105642-60f8-4920-afab-3dc28972bec6",
+      "brightness": 1,
+      "contrast": 1,
+      "saturation": 1,
+      "scale": 0.12,
+      "anchorX": 0.5,
+      "anchorY": 0.68,
+      "frameWidth": 1254,
+      "frameHeight": 1254
+    },
+    {
+      "state": "red-blue-low",
+      "assetId": "led-grow-red-blue-low",
+      "spectrum": "red-blue",
+      "power": "low",
+      "food": "less",
+      "image": "led-grow-red-blue-low.png",
+      "package": "led-grow-red-blue-low.assetlab.json",
+      "sha256": "9e9a3de33bb2a50a84ef0a72d2de1afbde3fd852b554d9836b4b024aac1a664a",
+      "revisionId": "f4d7cbab-7a42-46cd-848a-81cd75744461",
+      "brightness": 1,
+      "contrast": 1,
+      "saturation": 1,
+      "scale": 0.12,
+      "anchorX": 0.5,
+      "anchorY": 0.68,
+      "frameWidth": 1254,
+      "frameHeight": 1254
+    },
+    {
+      "state": "red-blue-high",
+      "assetId": "led-grow-red-blue-high",
+      "spectrum": "red-blue",
+      "power": "high",
+      "food": "more",
+      "image": "led-grow-red-blue-high.png",
+      "package": "led-grow-red-blue-high.assetlab.json",
+      "sha256": "1999ff24cc60753d858f55bf84f12faad5b34fbeeeae4d4b15a62dfd512e2382",
+      "revisionId": "a2d7763b-4500-4b3d-ab90-fb4db5b64937",
+      "brightness": 1,
+      "contrast": 1,
+      "saturation": 1,
+      "scale": 0.12,
+      "anchorX": 0.5,
+      "anchorY": 0.68,
+      "frameWidth": 1254,
+      "frameHeight": 1254
+    }
+  ]
+}
