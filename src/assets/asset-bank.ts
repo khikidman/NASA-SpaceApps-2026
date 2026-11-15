@@ -3,16 +3,16 @@ import type { BaseModuleKind, WorldEntity } from "../world/types";
 import registrations from "./catalog/asset-bank-world.json";
 
 export const BASE_BANK_ART: Record<BaseModuleKind, string> = {
-  habitat: "lunar-v2-base-habitat", research: "lunar-v2-base-lab",
-  greenhouse: "lunar-v2-base-greenhouse", airlock: "lunar-v2-base-airlock",
+  habitat: "habitat-dome-v1", research: "habitat-research-v1",
+  greenhouse: "habitat-plant-v1", airlock: "airlock-tunnel-exterior-solid",
   solar: "lunar-v2-base-solar", comms: "lunar-v2-base-comms",
-  junction: "lunar-v2-tunnel-cross", flag: "moon-flag",
+  junction: "habitat-junction-v1", flag: "moon-flag",
 };
 export const NODE_BANK_ART: Readonly<Record<string, string>> = {
   "solar-01": "lunar-v2-base-solar", "solar-02": "lunar-v2-base-comms",
-  "solar-03": "lunar-v2-base-greenhouse", "oxygen-01": "lunar-v2-base-airlock",
+  "solar-03": "lunar-v2-base-greenhouse", "oxygen-01": "habitat-oxygen-v1",
   "lab-01": "lunar-v2-base-lab", "sample-01": "lunar-v2-base-lab",
-  "shield-01": "lunar-v2-base-habitat",
+  "shield-01": "habitat-dome-v1",
 };
 export function worldBankAsset(entity: WorldEntity) {
   if (entity.artId) return entity.artId;

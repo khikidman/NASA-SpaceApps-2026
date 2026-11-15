@@ -1,0 +1,145 @@
+/* Selected direction A: graphical experiments, restrained surrounding UI. */
+.hud-dialog.diorama-dialog { width: 1120px; max-width: calc(100vw - 24px); border-radius: 20px; background: #0b1c28; }
+.diorama-dialog .dialog-header { padding: 10px 18px; }
+.diorama-dialog .dialog-header h2 { font-size: 15px; color: #b4cad1; }
+.diorama-dialog .dialog-content { padding: 18px; }
+.living-diorama:not(.workshop-routine) {
+  display: grid; grid-template-columns: minmax(0, 1fr) 244px; gap: 13px 18px;
+  grid-template-areas: "learn learn" "tools tools" "help help" "play forecast" "play modes" "notes notes";
+}
+.diorama-learning { grid-area: learn; text-align: left; padding: 0 3px 9px; border-bottom: 1px solid #a6c2cc26; }
+.diorama-learning>span { display: flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: #d8bf82; margin-bottom: 8px; }
+.diorama-learning h3 { margin: 0 0 7px; font-size: clamp(24px, 3.1vw, 36px); line-height: 1.14; letter-spacing: -.7px; color: #f3e9cf; font-weight: 600; }
+.diorama-learning p { margin: 0; color: #c1d7d7; font-size: 14px; line-height: 1.5; }
+.diorama-tools { grid-area: tools; display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #9ab3c1; font-size: 11px; }
+.diorama-tools>div { display: flex; gap: 6px; }
+.diorama-tools button,.diorama-lens { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 10px; min-height: 36px; border: 1px solid #7896a440; border-radius: 10px; background: #203747; color: #cfddd8; cursor: pointer; font-size: 11px; }
+.diorama-help { grid-area: help; margin: 0; padding: 11px 13px; color: #d9d6c0; background: #ceb37a0b; border-left: 2px solid #d6be83; font-size: 12px; line-height: 1.5; }
+.diorama-activity { grid-area: play; min-width: 0; display: grid; grid-template-rows: auto 1fr auto auto; gap: 9px; align-content: start; }
+.diorama-steps { display: flex; gap: 14px; align-items: center; padding: 0 3px; }
+.diorama-steps button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; padding: 5px 0; min-height: 34px; background: transparent; color: #96afbc; cursor: pointer; font-size: 12px; }
+.diorama-steps button>span { display: grid; place-items: center; width: 21px; height: 21px; border: 1px solid #718b9655; border-radius: 50%; font-size: 10px; }
+.diorama-steps [aria-current=step] { color: #f1d499; }
+.diorama-steps [aria-current=step]>span { border-color: #d3b578; background: #c7a86b18; }
+.diorama-steps button:disabled { opacity: .45; cursor: default; }
+.diorama-playfield { position: relative; min-width: 0; align-self: start; }
+.diorama-stage { width: 100%; height: clamp(270px, 40dvh, 420px); background: #101a22; border-radius: 15px; overflow: hidden; isolation: isolate; }
+.diorama-stage[data-compact=true] { height: auto; aspect-ratio: 600/540; }
+.diorama-world { display: block; width: 100%; height: 100%; overflow: visible; }
+.diorama-model-label { position: absolute; bottom: 8px; left: 10px; font-size: 9px; color: #d8dfdd; text-shadow: 0 1px 4px #000; pointer-events: none; }
+.diorama-lens { position: absolute; top: 10px; right: 10px; background: #102634e8; border-color: #b1d2d177; box-shadow: 0 2px 10px #07121d66; }
+.diorama-lens[aria-pressed=true] { background: #d8c69f; color: #253a49; }
+.diorama-prop[role=button],.core-picker { cursor: pointer; touch-action: manipulation; }
+.diorama-prop[aria-disabled=true] { cursor: default; }
+.diorama-object-label { font-family: var(--font-geist-sans, Arial), sans-serif; font-size: var(--label-size); font-weight: 600; fill: #f3eedb; paint-order: stroke fill; stroke: #152535; stroke-width: 4px; stroke-linejoin: round; }
+.prop-halo { transition: opacity .2s, stroke-width .2s; }
+.diorama-prop:hover .prop-halo,.diorama-prop:focus-visible .prop-halo { opacity: 1; stroke: #fff1bc; stroke-width: 4px; }
+.diorama-prop:focus-visible,.core-picker:focus-visible { outline: 3px solid #f8d991; outline-offset: 5px; }
+.diorama-prop[data-selected=true] .prop-halo { filter: drop-shadow(0 0 5px #e9bd6899); }
+.prop-body { transition: opacity .2s; }
+.diorama-turn { transition: transform .32s cubic-bezier(.2,.8,.2,1); }
+.diorama-prop[data-done=true] .prop-response { animation: diorama-seat .35s ease-out both; }
+.prop-check { animation: diorama-seat .3s ease-out both; }
+.diorama-prop[aria-disabled=true]:not([data-done=true]) .prop-body { opacity: .6; }
+.diorama-blueprint { opacity: .65; }
+.diorama-stage[data-inspect=true] .diorama-hull { opacity: .2; }
+.diorama-stage[data-inspect=true] .diorama-blueprint { opacity: 1; }
+.diorama-hull { transition: opacity .3s; }
+.diorama-stage[data-inspect=true] .diorama-shade { opacity: .45; }
+.diorama-flow { animation: diorama-flow 2.2s linear infinite; }
+.diorama-trace { stroke-dasharray: 420; animation: diorama-trace 1s ease-out both; }
+.diorama-ripple { transform-box: fill-box; transform-origin: center; animation: diorama-ripple 2s ease-out 3; }
+.warm-coil { animation: diorama-heat 1.5s ease-in-out infinite alternate; }
+.diorama-caption { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 56px; }
+.diorama-caption>div { min-width: 0; }
+.diorama-caption strong { color: #eee5cd; font-size: 14px; }
+.diorama-caption p { margin: 5px 0 0; font-size: 12px; line-height: 1.5; color: #a7c2cb; }
+.diorama-primary { display: inline-flex; justify-content: center; align-items: center; gap: 10px; border: 1px solid #f0dba1; border-radius: 11px; min-height: 44px; padding: 11px 16px; background: #d9bd80; color: #183244; font-size: 13px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+.diorama-primary:disabled { opacity: .45; cursor: default; }
+.diorama-primary:not(:disabled):hover { background: #f1d69e; }
+.diorama-fine-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 2px 5px; }
+.diorama-fine-controls.single { grid-template-columns: minmax(0, 1fr); max-width: 390px; margin-inline: auto; width: 100%; }
+.diorama-fine-dial { display: grid; gap: 5px; font-size: 11px; color: #d5e0da; }
+.diorama-fine-dial>span { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.diorama-fine-dial small { font-size: 10px; color: #9fbdc7; }
+.diorama-fine-dial input { width: 100%; accent-color: #e1bd78; min-height: 30px; cursor: pointer; }
+.diorama-plans { grid-area: modes; padding: 10px 0 0; margin: 0; display: grid; gap: 8px; border: 0; align-self: start; border-top: 1px solid #819ca333; }
+.diorama-plans legend { padding: 0; font-size: 11px; color: #b6c9c8; }
+.diorama-plans label { display: flex; align-items: flex-start; gap: 6px; color: #c5d3ce; font-size: 11px; line-height: 1.5; cursor: pointer; }
+.diorama-plans input { accent-color: #ddbc7c; margin-top: 2px; }
+.diorama-forecast { grid-area: forecast; padding-left: 16px; border-left: 1px solid #77919d33; align-self: start; }
+.forecast-heading { display: grid; gap: 7px; margin-bottom: 15px; }
+.forecast-heading>strong { font-size: 13px; color: #e5dbc0; }
+.forecast-heading>span { display: flex; align-items: center; gap: 5px; color: #a9c2c7; font-size: 11px; }
+.forecast-resources { display: grid; gap: 14px; }
+.forecast-resource { display: flex; align-items: flex-start; gap: 9px; }
+.forecast-resource>div { display: grid; gap: 4px; }
+.forecast-name { color: #a7c0ca; font-size: 11px; }
+.forecast-resource strong { display: flex; align-items: center; gap: 9px; font-size: 20px; font-weight: 500; color: #e0e9e1; font-variant-numeric: tabular-nums; }
+.forecast-resource strong>span { font-size: 15px; color: #7f9ba9; }
+.forecast-resource small { display: flex; flex-wrap: wrap; gap: 8px; font-size: 10px; }
+.forecast-resource .loss { color: #f0b1ad; }.forecast-resource .gain { color: #b0e0bb; }
+.forecast-commit { display: grid; gap: 14px; border-top: 1px solid #77919d33; margin-top: 17px; padding-top: 14px; }
+.forecast-commit>span:first-child { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; color: #becfc7; }
+.forecast-commit small { display: block; margin-top: 4px; font-size: 10px; color: #8caab7; }
+.forecast-commit strong { color: #bce1bf; }
+.forecast-practice { color: #97b1bd; font-size: 11px; line-height: 1.5; }
+.forecast-reason { color: #f1bfa6; font-size: 11px; line-height: 1.5; }
+.diorama-science-notes { grid-area: notes; display: flex; align-items: center; gap: 15px; margin-top: 2px; }
+.diorama-science-notes>.workshop-field-note { max-width: 450px; }
+.diorama-science-notes>span { font-size: 10px; color: #86a6b6; }
+.diorama-success { width: min(100%, 760px); margin-inline: auto; }
+.diorama-success .diorama-learning { width: 100%; margin-bottom: 15px; }
+.diorama-success .workshop-field-note { max-width: 550px; }
+.living-diorama.workshop-routine { max-width: 740px; margin-inline: auto; }
+.living-diorama .routine-scene { background-position: center 70%; background-size: cover; border-radius: 12px; height: 210px; }
+/* A plain name and capacity accompany each compact world supply bar. */
+.supply-content { display: grid; flex: 1; min-width: 0; gap: 4px; }
+.supply-label-row { display: flex; align-items: center; justify-content: space-between; gap: 5px; color: #bcd0d7; font-size: 10px; }
+.supply-label-row .supply-number { font-size: 12px; min-width: 0; line-height: 1.2; }
+.supply-number small { font-size: 9px; margin-left: 2px; color: #89a7b5; }
+.supply-row { min-height: 29px; }
+.supply-row .supply-track { width: 100%; flex: none; height: 6px; }
+.star-bank .supply-label-row .supply-number { color: #e6d0a1; font-size: 15px; }
+.research-progress-hud { display: flex; align-items: center; gap: 6px; padding-top: 6px; margin-top: 3px; border-top: 1px solid #9fbac22a; font-size: 10px; color: #abc3c6; }
+.research-progress-hud strong { margin-left: auto; font-size: 12px; color: #cce2ce; }
+@keyframes diorama-seat { 0% { translate: 0 -9px; opacity: .65; } 70% { translate: 0 2px; opacity: 1; } 100% { translate: 0 0; opacity: 1; } }
+@keyframes diorama-flow { to { stroke-dashoffset: -68; } }
+@keyframes diorama-trace { from { stroke-dashoffset: 420; } to { stroke-dashoffset: 0; } }
+@keyframes diorama-ripple { from { opacity: .9; scale: .4; } to { opacity: 0; scale: 1.6; } }
+@keyframes diorama-heat { to { stroke: #ffe3a5; opacity: .65; } }
+@media(max-width:900px) {
+  .living-diorama:not(.workshop-routine) { grid-template-columns: minmax(0, 1fr); grid-template-areas: "learn" "tools" "help" "play" "modes" "forecast" "notes"; gap: 11px; }
+  .diorama-forecast { border-left: 0; border-top: 1px solid #77919d33; padding: 13px 0 0; }
+  .forecast-heading { display: flex; justify-content: space-between; }
+  .forecast-resources { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+  .forecast-commit { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 13px; }
+  .diorama-plans { display: flex; flex-wrap: wrap; gap: 13px; }
+  .diorama-stage:not([data-compact=true]) { height: auto; aspect-ratio: 960/450; }
+}
+@media(max-width:520px) {
+  .hud-dialog.diorama-dialog { max-width: calc(100vw - 12px); max-height: calc(100dvh - 14px); border-radius: 15px; }
+  .diorama-dialog .dialog-content { padding: 12px; }
+  .diorama-dialog .dialog-header { padding: 8px 12px; }
+  .diorama-learning h3 { font-size: 25px; letter-spacing: -.4px; }
+  .diorama-learning p { font-size: 12px; }
+  .diorama-learning>span { font-size: 9px; }
+  .diorama-steps { gap: 13px; }.diorama-steps button { font-size: 11px; }
+  .diorama-caption { flex-direction: column; align-items: stretch; gap: 10px; }
+  .diorama-caption strong { font-size: 13px; }.diorama-caption p { font-size: 11px; }
+  .diorama-primary { min-height: 46px; }
+  .diorama-lens { top: 8px; right: 8px; font-size: 10px; min-height: 38px; padding: 6px 8px; }
+  .diorama-fine-controls { grid-template-columns: 1fr; gap: 12px; }
+  .diorama-fine-dial input { min-height: 38px; }
+  .diorama-science-notes { flex-direction: column; align-items: stretch; gap: 8px; }
+  .diorama-science-notes>span { text-align: center; }
+  .forecast-resource strong { font-size: 19px; }
+  .forecast-commit .diorama-primary { width: 100%; }
+  .supply-label-row { font-size: 9px; }.supply-label-row .supply-number { font-size: 11px; }
+  .supply-row { min-height: 27px; }.research-progress-hud { font-size: 9px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .diorama-stage * { animation: none!important; transition: none!important; }
+  .diorama-ripple { opacity: .65; scale: 1; }
+  .diorama-trace { stroke-dashoffset: 0; }
+}

@@ -47,3 +47,32 @@ exercise skip, day transition, and a successful compile. No broad browser test s
 CHANGES TO EXISTING CODE: extended Resource/GameState/GameAction types and pure engine; new ruleset/dataset/save version and preserved old save key; task-aware world presentation; base-station callbacks; mission HUD/dialogs, resource components, and source registry. Existing geometry, camera, terrain transitions, base-entry animation, later-day tasks, and Mars are reused.
 
 Limit: this is the first Day 1 slice, not the eight-day campaign. Energy is restored by the night plan; skipping starts Day 2 at 80 instead of 100. A later-day research-yield modifier has not been invented. The ice cave is a local stylized resource drawing, not a real NASA surface location.
+
+## Three minigame refinement passes
+
+See `day-1-minigame-iterations.md` for the three design audits and scores.
+The five missions now use seeded, multi-stage workshop puzzles, versioned
+completion proof, free practice saved in session storage, contextual hints,
+and task-specific feedback. Exercise reuses the registered astronaut atlas,
+with guided input, optional challenge controls, and an optional paused guide.
+
+Standard terms preserve the original budget above. Boost spends 3 extra Power
+per mission to save 3 Energy and 0.25 work hours; all five boosted tasks total
+4.25 hours, leaving 9.75 after the optional two-hour routine (before supplies).
+All five standard tasks cost 34 Energy / 6 Power; all five boosts cost 19 Energy /
+21 Power. These are fictional tuning; both plans reward the same knowledge.
+The same terms function drives the preview and accepted costs. Invalid practice
+and canceled tasks use no resources. Completed work still awards once.
+
+Compatibility: no legacy replay semantics changed. Existing v3 actions without
+workshop metadata retain their original validation and standard costs. New
+revision-2 inputs validate the seeded setup, manipulation and terminal check.
+Local drafts are presentation-only; they cannot write supplies or award rewards.
+New accepted actions replay their chosen plan and proof through the engine.
+
+Passes 4–6 add current-action/progress cards, detailed native SVG instruments and
+symbols, a symmetric straight-filter connection, and optional field notes for all
+five tasks and exercise. See `day-1-learning-connections.md` for verified science,
+source IDs, and game limits. Notes do not mutate the journey, cost resources or
+add reading gates. The source registry and optional `/about` field guide retain
+access after a task closes; game economy and replay rules stay unchanged.

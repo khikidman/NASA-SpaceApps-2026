@@ -39,12 +39,14 @@ export interface GameState {
   tutorial: { completed: readonly TutorialTaskId[]; ice: number; exercise: "pending" | "cardio" | "weights" | "skipped"; fatigue: boolean };
 }
 export type TutorialTaskId = "comms" | "detector" | "ice" | "food" | "melt";
-export type TutorialInput =
-  | { kind: "repair"; pairs: string[]; tuning: number }
-  | { kind: "calibrate"; placed: boolean; reading: number }
-  | { kind: "collect"; pieces: string[] }
-  | { kind: "assemble"; parts: string[] }
-  | { kind: "convert"; loaded: boolean; heat: number };
+export type TutorialPlan = "standard" | "boost";
+export type TutorialInput = (
+  | { kind: "repair"; pairs: string[]; tuning: number; proof?: { frequency: number; phase: number; tested: boolean } }
+  | { kind: "calibrate"; placed: boolean; reading: number; proof?: { pad: number; feet: number[]; recorded: boolean } }
+  | { kind: "collect"; pieces: string[]; proof?: { scanned: string[]; cuts: number[] } }
+  | { kind: "assemble"; parts: string[]; proof?: { rotations: number[]; tested: boolean } }
+  | { kind: "convert"; loaded: boolean; heat: number; proof?: { temperatures: number[]; filtered: boolean; checked?: boolean } }
+) & { revision?: 2; plan?: TutorialPlan };
 export interface TaskOption { id: string; label: string; weight?: number; effects?: ResourceDelta }
 export interface TaskStep {
   id: string; kind: "pick" | "pack" | "order"; prompt: string; hint: string; fact: string; sourceId: string;

@@ -14,6 +14,7 @@ import { beginWalk, walkAt, retimeWalk, presenceAt, STEP_MS, type WalkMotion } f
 import { LUNAR_BASE_ASSET, loadLunarBaseTextures, type BaseTextures } from "./lunar-base";
 import { loadAstronautAtlas, type AstronautAtlas } from "./astronaut";
 import { ASTRONAUT_SHEET_SRC, ASTRONAUT_WORLD_HEIGHT } from "../assets/characters/astronaut-settings";
+import { loadAirlockTextures, type AirlockTextures } from "./airlock-visual";
 
 class PixiWorldRenderer implements WorldRenderer {
   private scene;
@@ -66,6 +67,7 @@ class PixiWorldRenderer implements WorldRenderer {
     private readonly callbacks: WorldRendererCallbacks,
     baseTextures: BaseTextures,
     private readonly astronautAtlas: AstronautAtlas,
+    airlockTextures: AirlockTextures,
   ) {
     this.bounds = worldBounds(world.width, world.height);
     // Native canvas input owns picking; detach Pixi's duplicate event listeners.
@@ -79,7 +81,7 @@ class PixiWorldRenderer implements WorldRenderer {
       if (!inside) this.scene.facePlayer({ col: 0, row: 1 });
       this.callbacks.onHomeChange(inside);
       this.app.canvas.setAttribute("aria-label", inside ? "Home base interior. Five by five floor. Click or use arrows or WASD to walk. Walk through the doorway or press Escape to leave." : `${world.location} exploration world. Click to walk. E enters a nearby stop.`);
-    }, astronautAtlas, (id) => this.callbacks.onHomeStation?.(id));
+    }, astronautAtlas, (id) => this.callbacks.onHomeStation?.(id), airlockTextures);
     this.app.stage.addChild(this.scene.root, this.home.root, this.home.crossingAvatar, this.homeMarker.root, this.objectiveMarker.root);
     this.scene.setSelection(initialState.selected, performance.now(), false);
 
@@ -576,11 +578,11 @@ export async function createWorldRenderer(
       resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
       autoStart: false, sharedTicker: false,
     });
-    const [baseTextures, atlas] = await Promise.all([loadLunarBaseTextures(world), loadAstronautAtlas()]);
+    const [baseTextures, atlas, airlockTextures] = await Promise.all([loadLunarBaseTextures(world), loadAstronautAtlas(), loadAirlockTextures()]);
     astronautAtlas = atlas;
     if (signal.aborted) throw new DOMException("World initialization cancelled.", "AbortError");
     if (app.renderer.type !== RendererType.WEBGL) throw new Error("A WebGL renderer is required.");
-    return new PixiWorldRenderer(app, host, world, initialState, callbacks, baseTextures, atlas);
+    return new PixiWorldRenderer(app, host, world, initialState, callbacks, baseTextures, atlas, airlockTextures);
   } catch (error) {
     if (app.renderer) app.destroy({ removeView: true }, { children: true, context: true });
     astronautAtlas?.destroy();

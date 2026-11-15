@@ -1,0 +1,16 @@
+{
+  "tool": "built-in image_gen",
+  "purpose": "targeted symbol and character refinements",
+  "edits": [
+    {
+      "id": "b",
+      "path": "/Users/khikidman/Dev/SpaceApps/docs/design/explorer-ux-concepts/b-inventors-workbench.png",
+      "prompt": "Use case: precise-object-edit. Edit target: the attached Inventor's Workbench educational game mockup. Preserve this full 16:9 image, all composition, apparatus, all headlines, numbers, signs, forecasts, cost/gain text, lighting and style EXACTLY. Change only two specific items: (1) At the bottom-left resource dock, replace the rightmost green liquid jar marked Energy 80/100 with an equally sized ivory-and-brass astronaut readiness instrument. It must visibly be a small navy astronaut helmet above a segmented readiness gauge, never a leaf, potion, green liquid or electrical coil. Retain the exact readable label Energy 80/100. The neighboring Power jar with lightning remains Power 75/100. (2) On the large astronaut on the left, close the helmet visor with dark reflective navy glass so the face is hidden, matching the project's established astronaut identity. Preserve the pointing pose, suit, silhouette, placement and proportion. Absolutely no other edits. Do not redesign text or frame. All other pixels should remain unchanged as much as possible."
+    },
+    {
+      "id": "c",
+      "path": "/Users/khikidman/Dev/SpaceApps/docs/design/explorer-ux-concepts/c-discovery-atlas.png",
+      "prompt": "Use case: precise-object-edit. Edit target: the attached Discovery Atlas educational space-game mockup. Preserve this full 16:9 image, all composition, atlas, water experiment, astronaut, all headlines, all counts, forecasts, cost/gain figures, signs, paper, lighting and style EXACTLY. Change only Energy's ambiguous visual metaphor in two locations: (1) At the top-left inventory, replace the rightmost green jar/coil marked Energy 80/100 with an equally sized ivory/brass astronaut readiness instrument showing a small reflective navy astronaut helmet and segmented readiness meter. Keep the exact label Energy 80/100. No leaf, liquid potion or electrical coil for Energy. Neighboring Power stays the battery/lightning resource at Power 75/100. (2) At the bottom-left FORECAST strip, replace only the small green coil icon next to Energy with a tiny matching astronaut helmet/readiness symbol. Preserve the text Energy and 80 → 76 exactly. No other edits, no added objects, no changes to typography, no altered quantities or science labels."
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { DAY1_CONFIG, DAY1_TASKS, isDayOne, nextDayOneTask, validTutorialInput } from "../data/day-one";
+import { workshopTerms } from "../data/day-one-workshop";
 import { adjacent } from "../world/exploration";
 import { atHomeDoor } from "../world/home";
 import { createOutpost } from "../world/map";
@@ -29,9 +30,10 @@ export function applyTutorialAction(state: GameState, action: TutorialAction, ef
   if (!task || task.id !== action.taskId) throw new Error("Follow your current mission first. Completed work is saved.");
   const node = world.entities.find((n) => n.id === task.nodeId)!;
   if (task.inside ? !atBase : !adjacent(state.position, node.position)) throw new Error(task.inside ? "Return to the base door first." : "Walk beside your mission marker first.");
-  if (!validTutorialInput(task, action.input)) throw new Error("Try again. Aim for the center. No supplies were used.");
+  if (!validTutorialInput(task, action.input, state.seed)) throw new Error("Finish each workbench check first. No supplies were used.");
   if (task.id === "melt" && state.tutorial.ice !== 3) throw new Error("Bring your ice bucket home first.");
-  const next = effects(state, task.cost, task.hours, task.reward);
+  const terms = workshopTerms(task, action.input.plan);
+  const next = effects(state, terms.cost, terms.hours, terms.reward);
   return { ...next, discoveries: task.id === "ice" ? [...next.discoveries, { world: "moon", day: 1, fact: "The Moon has no wind or rain.", sourceId: "moon-weather" }] : next.discoveries, tutorial: { ...state.tutorial, completed: [...state.tutorial.completed, task.id],
     ice: task.id === "ice" ? 3 : task.id === "melt" ? 0 : state.tutorial.ice },
     feedback: task.id === "comms" ? "Radio ready! Place the detector." : task.id === "detector" ? "Detector ready! Find the ice." : task.id === "ice" ? "Bring your ice home." : task.id === "food" ? "Kitchen ready! Melt your ice." : "Your base is working!" };

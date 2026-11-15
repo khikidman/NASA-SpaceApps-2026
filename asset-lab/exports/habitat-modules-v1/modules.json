@@ -1,0 +1,37 @@
+{
+  "format": "asset-lab.habitat-modules/v1",
+  "reference": "../airlock-tunnel-v1",
+  "tile": {
+    "width": 96,
+    "height": 48
+  },
+  "footprint": {
+    "width": 1,
+    "height": 1
+  },
+  "shellHeight": 42.02333931777379,
+  "settings": {
+    "brightness": 1,
+    "contrast": 1,
+    "saturation": 1,
+    "scale": 0.25,
+    "anchorX": 0.5,
+    "anchorY": 0.78125,
+    "frameWidth": 1024,
+    "frameHeight": 1024
+  },
+  "assets": [
+    {
+      "id": "habitat-dome-v1",
+      "file": "dome",
+      "title": "Habitat · geodesic dome",
+      "height": 73.02333931777379
+    },
+    {
+      "id": "habitat-oxygen-v1",
+      "file": "oxygen",
+      "title": "Habitat · oxygen systems",
+      "height": 76.02333931777379
+    }
+  ]
+}

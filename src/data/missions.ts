@@ -10,4 +10,4 @@ export const MARS_MISSION: MissionConfig = { ...common, id: "mars", title: "Mars
 export const MISSIONS: Readonly<Record<WorldId, MissionConfig>> = { moon: MOON_MISSION, mars: MARS_MISSION };
 export const DAILY_KNOWLEDGE_GOAL = 6;
 export const WORK_HOURS = 16;
-export const RESOURCE_NAMES = { oxygen: "Air", water: "Water", power: "Power", energy: "Energy", shielding: "Shield", science: "Stars" } as const;
+export const RESOURCE_NAMES = { oxygen: "Air", water: "Water", power: "Power", energy: "Energy", shielding: "Shield", science: "Research tokens" } as const;

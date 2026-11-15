@@ -1,4 +1,5 @@
 import type { GameState, ResourceDelta, TutorialInput, TutorialTaskId } from "../game/types";
+import { validWorkshopProof } from "./day-one-workshop";
 
 /** [TUNE] Fictional prototype balance, not NASA measurements or study findings. */
 export const DAY1_CONFIG = {
@@ -23,8 +24,9 @@ export const nextDayOneTask = (game: GameState) => DAY1_TASKS.find((task) => !ga
 export const remainingDayOneHours = (game: GameState) => DAY1_TASKS.filter((task) => !game.tutorial.completed.includes(task.id)).reduce((sum, task) => sum + task.hours, 0);
 const exact = (actual: unknown, expected: string[]) => Array.isArray(actual) && actual.length === expected.length && new Set(actual).size === actual.length && expected.every((id) => actual.includes(id));
 const centered = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 45 && value <= 55;
-export function validTutorialInput(task: TutorialTask, input: TutorialInput) {
+export function validTutorialInput(task: TutorialTask, input: TutorialInput, seed = 0) {
   if (!input || input.kind !== task.kind) return false;
+  if (!validWorkshopProof(input, seed)) return false;
   switch (input.kind) {
     case "repair": return exact(input.pairs, ["triangle", "circle", "square"]) && centered(input.tuning);
     case "calibrate": return input.placed === true && centered(input.reading);

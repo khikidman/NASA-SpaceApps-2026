@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "sourceManifest": "asset-lab/exports/airlock-tunnel-v1/airlock-tunnel.states.json",
+  "sourceManifestSha256": "f3d0f30a123053b2537c5b4ecf200b93f45fd18b48e3447a0c8fc7bddeed00fa",
+  "records": [
+    {
+      "id": "airlock-tunnel-exterior-solid",
+      "sourcePath": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.svg",
+      "sourceSha256": "21052931e2dc3075471974d533b8a90c1aacf6d8989f85c09068cadfc399fe17",
+      "sourcePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "parentRevision": "f6d0c5b8-b945-4196-a9bf-8564b55eb18f",
+      "revision": "cf12f3eb-ce5c-48b6-aefe-356c140e175c",
+      "packageDigest": "ad9f92566151b8901d7241141c8f237b7eb8abed6388ce9bfb3087bb8ccd685d",
+      "promotion": "asset-lab/promotions/airlock-tunnel-exterior-solid-cf12f3eb-ce5c-48b6-aefe-356c140e175c.json"
+    },
+    {
+      "id": "airlock-tunnel-floor",
+      "sourcePath": "asset-lab/exports/airlock-tunnel-v1/layer-floor.svg",
+      "sourceSha256": "4377f9a9d2696ff09f4017a403192b86984176be120a4fb2fdff98c704eda770",
+      "sourcePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "parentRevision": "f6d0c5b8-b945-4196-a9bf-8564b55eb18f",
+      "revision": "b9ac3110-e273-4e60-ac90-7e6e7c2e4704",
+      "packageDigest": "2f3b28717a5023567a0f2b5625a89e07b7181f5d401a7f908d5d80882198220d",
+      "promotion": "asset-lab/promotions/airlock-tunnel-floor-b9ac3110-e273-4e60-ac90-7e6e7c2e4704.json"
+    },
+    {
+      "id": "airlock-tunnel-far-enclosure",
+      "sourcePath": "asset-lab/exports/airlock-tunnel-v1/layer-far-enclosure.svg",
+      "sourceSha256": "dde80b8805dc9718cfc1746ebb843ea493bd72a617249e806bd31bb9b4d77520",
+      "sourcePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "parentRevision": "f6d0c5b8-b945-4196-a9bf-8564b55eb18f",
+      "revision": "fbd377e6-0f17-4585-96b6-8a990a747016",
+      "packageDigest": "0ddd9a88fc8bb22055d32583dc79b5c547216f77a7229f755b17809f9a6fb145",
+      "promotion": "asset-lab/promotions/airlock-tunnel-far-enclosure-fbd377e6-0f17-4585-96b6-8a990a747016.json"
+    },
+    {
+      "id": "airlock-tunnel-near-enclosure",
+      "sourcePath": "asset-lab/exports/airlock-tunnel-v1/layer-near-enclosure.svg",
+      "sourceSha256": "b13a073764c06175e6ea64f1f7e73876ff393dfc7211eb57c0bebff4263f2502",
+      "sourcePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "parentRevision": "f6d0c5b8-b945-4196-a9bf-8564b55eb18f",
+      "revision": "be880769-f814-4b3a-8bbe-f929e1c29ca9",
+      "packageDigest": "0865add32fcde460779137e66909336df008d6d8423e03ac9200f21515da9db8",
+      "promotion": "asset-lab/promotions/airlock-tunnel-near-enclosure-be880769-f814-4b3a-8bbe-f929e1c29ca9.json"
+    },
+    {
+      "id": "airlock-tunnel-ceiling",
+      "sourcePath": "asset-lab/exports/airlock-tunnel-v1/layer-ceiling.svg",
+      "sourceSha256": "481ea40f56485abb37875d416b0952d1ecad76e35b547f3ced26818210316b35",
+      "sourcePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "parentRevision": "f6d0c5b8-b945-4196-a9bf-8564b55eb18f",
+      "revision": "84e98b62-0332-4f27-aab4-4a48c75d38d8",
+      "packageDigest": "07db0d6e6bd6d417603cc2cb15416cbea7ec2baa4e0fa20ca16e431501527123",
+      "promotion": "asset-lab/promotions/airlock-tunnel-ceiling-84e98b62-0332-4f27-aab4-4a48c75d38d8.json"
+    },
+    {
+      "id": "airlock-tunnel-inner-frame",
+      "sourcePath": "asset-lab/exports/airlock-tunnel-v1/layer-inner-frame.svg",
+      "sourceSha256": "ff28d7322ecd7be5494cb1fdc2da2dfdc33716ac6fbdaae7a24cc44d73076fcc",
+      "sourcePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "parentRevision": "f6d0c5b8-b945-4196-a9bf-8564b55eb18f",
+      "revision": "584366c0-de33-4bb8-aff2-04a4a30626fd",
+      "packageDigest": "729f63b6e76bc1ea5dd8b477a169c537746e78233af7c0bac0c0484bb14cc5e3",
+      "promotion": "asset-lab/promotions/airlock-tunnel-inner-frame-584366c0-de33-4bb8-aff2-04a4a30626fd.json"
+    },
+    {
+      "id": "airlock-tunnel-outer-frame",
+      "sourcePath": "asset-lab/exports/airlock-tunnel-v1/layer-outer-frame.svg",
+      "sourceSha256": "bb32d64d36860c900700f68af3735b0bfe7f80e908f75cea9a5b138724c9d6b2",
+      "sourcePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "parentRevision": "f6d0c5b8-b945-4196-a9bf-8564b55eb18f",
+      "revision": "853c7fbe-c741-4c96-a098-16ca6eb3f29f",
+      "packageDigest": "9d814a2834b6896ecc301a073691aed8276ad15068aa6de58e290bb04075a7cd",
+      "promotion": "asset-lab/promotions/airlock-tunnel-outer-frame-853c7fbe-c741-4c96-a098-16ca6eb3f29f.json"
+    }
+  ]
+}

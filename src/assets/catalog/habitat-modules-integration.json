@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "generator": "asset-lab/exports/habitat-modules-v1/build.mjs",
+  "generatorSha256": "91054db3aedeb06f08e7d487b3058680710797145a20fd9ed1e57cf37ac9d3ad",
+  "records": [
+    {
+      "id": "habitat-dome-v1",
+      "sourceVector": "asset-lab/exports/habitat-modules-v1/dome.svg",
+      "sourceVectorSha256": "fb56cf9d7ba2e8cae8382f1e2ebc63e3f54e377c309cba763434dc728d729f66",
+      "sourcePackage": "asset-lab/exports/habitat-modules-v1/dome.assetlab.json",
+      "referencePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "revision": "ecf45de7-3181-48be-8e0c-5944d3cafbae",
+      "promotion": "asset-lab/promotions/habitat-dome-v1-ecf45de7-3181-48be-8e0c-5944d3cafbae.json"
+    },
+    {
+      "id": "habitat-oxygen-v1",
+      "sourceVector": "asset-lab/exports/habitat-modules-v1/oxygen.svg",
+      "sourceVectorSha256": "0406484d146a124f417d9ce6d0653955121f04cd73e73f3f5bdf21783580ab70",
+      "sourcePackage": "asset-lab/exports/habitat-modules-v1/oxygen.assetlab.json",
+      "referencePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "revision": "2c206a07-2c32-428a-8946-79ac7cf41aa2",
+      "promotion": "asset-lab/promotions/habitat-oxygen-v1-2c206a07-2c32-428a-8946-79ac7cf41aa2.json"
+    },
+    {
+      "id": "habitat-junction-v1",
+      "sourceVector": "asset-lab/exports/habitat-modules-v1/junction.svg",
+      "sourceVectorSha256": "94550824d7f4baf6235d3c788ef126a41b8a11cf2685d70f101b71ba0bb9a9ac",
+      "sourcePackage": "asset-lab/exports/habitat-modules-v1/junction.assetlab.json",
+      "referencePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "generator": "asset-lab/exports/habitat-modules-v1/build-junction.mjs",
+      "generatorSha256": "8693c7c85fe0a823eb578797756af89846e34e9a7d945dfc8d214509c473969b",
+      "revision": "7e3a4b76-76f7-4ea7-bebc-984d7c52561f",
+      "promotion": "asset-lab/promotions/habitat-junction-v1-7e3a4b76-76f7-4ea7-bebc-984d7c52561f.json"
+    },
+    {
+      "id": "habitat-plant-v1",
+      "sourceVector": "asset-lab/exports/habitat-modules-v1/plant.svg",
+      "sourceVectorSha256": "52d9b50c49c20fb3918afc55771ef64c91aba9b23dce473d5887bed8632e5e8a",
+      "sourcePackage": "asset-lab/exports/habitat-modules-v1/plant.assetlab.json",
+      "referencePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "generator": "asset-lab/exports/habitat-modules-v1/build-plant-research.mjs",
+      "generatorSha256": "810b9272a68bb431ac238a42d030119770c4c379d62eefd333e6846714be5912",
+      "revision": "4f5de316-740c-4f3d-bc9f-287e326cc960",
+      "promotion": "asset-lab/promotions/habitat-plant-v1-4f5de316-740c-4f3d-bc9f-287e326cc960.json"
+    },
+    {
+      "id": "habitat-research-v1",
+      "sourceVector": "asset-lab/exports/habitat-modules-v1/research.svg",
+      "sourceVectorSha256": "637b580facde413ab94fcf4535837f0fe6c225269ee736cea02b64e418804797",
+      "sourcePackage": "asset-lab/exports/habitat-modules-v1/research.assetlab.json",
+      "referencePackage": "asset-lab/exports/airlock-tunnel-v1/exterior-solid.assetlab.json",
+      "generator": "asset-lab/exports/habitat-modules-v1/build-plant-research.mjs",
+      "generatorSha256": "810b9272a68bb431ac238a42d030119770c4c379d62eefd333e6846714be5912",
+      "revision": "eb8c7eb9-93fd-4a3f-b59b-52f59d0e7ad2",
+      "promotion": "asset-lab/promotions/habitat-research-v1-eb8c7eb9-93fd-4a3f-b59b-52f59d0e7ad2.json"
+    }
+  ]
+}

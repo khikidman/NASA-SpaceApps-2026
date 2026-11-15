@@ -1,0 +1,143 @@
+/* Refinement 4: one obvious action and a legible progress cue. */
+.workshop-objective {
+  display: flex; align-items: center; gap: 11px; padding: 12px;
+  border: 1px solid #b5d3de26; border-radius: 14px;
+  background: linear-gradient(120deg, #233b4a, #142b39);
+}
+.objective-badge {
+  display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px;
+  color: #f2cb82; border: 1px solid #ddbe7855; border-radius: 11px; background: #d6ad6512;
+}
+.objective-badge svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.workshop-objective>div { display: grid; gap: 5px; min-width: 0; }
+.workshop-objective strong { font-size: 14px; color: #f0e8d3; line-height: 1.3; }
+.workshop-objective small { font-size: 11px; color: #b1c9d4; line-height: 1.5; }
+.objective-count { margin-left: auto; font-size: 12px; color: #b6d3d8; white-space: nowrap; }
+.workshop-objective.achieved { border-color: #9bd2b357; }
+.workshop-objective.achieved .objective-badge { color: #b1e5c9; background: #91d4b01a; border-color: #91d4b077; }
+.day1-workshop .workshop-circuits .next-wire { border-color: #ebc57d; box-shadow: 0 0 0 3px #ebc57d18; }
+.day1-workshop .workshop-circuits .matching-socket { border-style: dashed; border-color: #ebc57d; color: #f2da9f; }
+.workshop-preview { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 12px; border-radius: 12px; background: #0c202e; }
+.workshop-awaiting { width: 100%; margin: 4px 0 0; text-align: center; color: #98b4c0; font-size: 11px; }
+@media (max-width: 520px) {
+  .workshop-objective { padding: 10px; gap: 8px; }
+  .workshop-objective strong { font-size: 12px; }
+  .workshop-objective small { font-size: 10px; }
+  .objective-badge { width: 30px; height: 30px; flex-basis: 30px; }
+}
+
+/* Refinement 5: native vector tools and substantial instrument surfaces. */
+.workshop-icon { display: inline-block; vertical-align: middle; flex-shrink: 0; overflow: visible; }
+.circuit-shape { fill: #e9c786; stroke: #fff0c4; stroke-width: 1; }
+.objective-device { position: relative; display: grid; place-items: center; flex: 0 0 62px; margin: -5px 0 -4px -3px; }
+.device-ready { position: absolute; right: -1px; bottom: 0; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #234637; border: 1px solid #99ceb1; }
+.workshop-stages b .workshop-icon { filter: saturate(.7); }
+.workshop-stages [aria-current=step] b .workshop-icon { filter: none; }
+.workshop-toolbar>span,.workshop-toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.day1-workshop .workshop-circuits {
+  padding-top: 17px; padding-bottom: 17px;
+  background: radial-gradient(circle at 49% 48%, #36566544, transparent 62%), repeating-linear-gradient(0deg, transparent 0 26px, #8cabbe08 26px 27px), #0a1d2b;
+  border: 5px solid #8c958f; border-top-color: #dbd1b7; border-left-color: #b9b29f; border-radius: 17px;
+  box-shadow: inset 0 0 0 2px #34495b, 0 4px 0 #152537;
+}
+.day1-workshop .workshop-circuits svg:not(.workshop-icon):not(.circuit-shape) { top: 17px; }
+.workshop-circuits:before,.workshop-circuits:after {
+  content: ""; position: absolute; top: -3px; width: 4px; height: 4px; background: #53616d;
+  border-radius: 50%; pointer-events: none; box-shadow: 0 189px #53616d;
+}
+.workshop-circuits:before { left: 8px; }.workshop-circuits:after { right: 8px; }
+.day1-workshop .workshop-circuits button {
+  display: grid; place-items: center; background: linear-gradient(150deg, #4c6370, #253c4e);
+  border-radius: 11px; box-shadow: inset 0 0 0 3px #142b3a, 0 3px 0 #071726;
+}
+.day1-workshop .workshop-circuits button.selected { background: #665032; border-color: #f3ca7b; }
+.day1-workshop .workshop-circuits button:disabled { background: linear-gradient(#315c4d, #193f35); }
+.day1-workshop .workshop-signal {
+  border: 5px solid #b9baa6; border-radius: 15px;
+  background: repeating-linear-gradient(0deg, transparent 0 20px, #84b4bc14 20px 21px), repeating-linear-gradient(90deg, transparent 0 20px, #84b4bc14 20px 21px), #071c29;
+  box-shadow: inset 0 0 15px #0007, 0 3px 0 #36495a;
+}
+.workshop-transmission .transmission-endpoint { display: grid; justify-items: center; gap: 7px; font-size: 11px; color: #bad0d6; }
+.workshop-transmission .transmission-endpoint small { font-size: 11px; }
+.workshop-transmission,.workshop-flow-test {
+  background: radial-gradient(ellipse at center, #28485977, transparent 75%), #102332;
+  border: 1px solid #668a9b44;
+}
+.workshop-pads button { box-shadow: inset 0 -3px 0 #101d2c; }
+.workshop-pads svg>path:first-child { stroke-width: 1.4; }
+.workshop-level { border: 1px solid #74929d44; border-radius: 15px; padding: 8px 5px 12px; background: linear-gradient(#203b4c, #102938); }
+.workshop-level.balanced { border-color: #9ed0ae77; }
+.workshop-level>svg { background: radial-gradient(ellipse at center, #c6d6c912, transparent 70%); }
+.day1-workshop .workshop-trace {
+  border: 5px solid #b9baa6; box-shadow: inset 0 0 0 2px #34495b, 0 3px 0 #344352;
+  background: repeating-linear-gradient(0deg, transparent 0 22px, #8baeb218 22px 23px), repeating-linear-gradient(90deg, transparent 0 22px, #8baeb218 22px 23px), #0c202e;
+}
+.workshop-trace svg { margin: 8px 0 18px; }
+.workshop-deposits button { box-shadow: inset 0 -3px 0 #101d2c; }
+.workshop-deposits b { display: grid; place-items: center; pointer-events: none; }
+.workshop-deposits b .workshop-icon { padding: 3px; border-radius: 8px; background: #172a36d9; }
+.workshop-deposits .found-ice { border-color: #a1d9df; }
+.workshop-core-tabs button,.workshop-drill button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.workshop-drill>svg { border: 1px solid #6a92a244; border-radius: 13px; background: radial-gradient(ellipse, #213f52, #0c2533); margin-bottom: 10px; }
+.workshop-drill.collected .core-rock { opacity: .3; }
+.workshop-bucket>span { opacity: .25; }.workshop-bucket>span.filled { opacity: 1; }
+.workshop-bucket.full { position: relative; }
+.packed-cores { position: absolute; top: 12px; display: flex; gap: 0; }
+.packed-cores .workshop-icon:nth-child(1) { rotate: -12deg; }.packed-cores .workshop-icon:nth-child(3) { rotate: 14deg; }
+.workshop-machine { box-shadow: inset 0 0 0 1px #f5e9c7, 0 5px 0 #1b2d3d; padding-top: 28px; }
+.workshop-machine:before { content: ""; position: absolute; left: 15px; right: 15px; top: 10px; height: 3px; background: #e5b75e; border-radius: 3px; }
+.workshop-machine:after { content: ""; position: absolute; bottom: -12px; left: 20px; right: 20px; height: 7px; background: #58616b; border-radius: 0 0 5px 5px; }
+.workshop-machine button { display: grid; place-items: center; box-shadow: inset 0 0 8px #061c29aa; }
+.workshop-machine button:not(:disabled) .workshop-icon { opacity: .32; filter: grayscale(1); }
+.workshop-parts { padding: 8px 5px; border-radius: 13px; background: #0a2030; margin-top: 8px; }
+.workshop-parts button { box-shadow: 0 3px 0 #091825; }
+.workshop-flow-test>span { display: grid; place-items: center; }
+.workshop-melter { padding: 12px 20px 9px; border-radius: 16px; background: radial-gradient(ellipse, #31526455, transparent 75%); }
+.workshop-tank { border-color: #d8cdb2; box-shadow: 0 4px 0 #4a5662, inset 0 0 15px #0007; }
+.workshop-tank:before { content: ""; position: absolute; left: 4px; top: 5px; bottom: 5px; width: 7px; background: repeating-linear-gradient(0deg, transparent 0 12px, #b8cbd2aa 12px 13px); z-index: 2; }
+.workshop-tank:after { content: ""; position: absolute; top: -8px; left: 8px; right: 8px; height: 3px; background: #c39248; }
+.workshop-tank>span { display: inline-flex; }
+.workshop-filter { padding: 10px 8px; gap: 13px; border: 1px solid #7396a344; border-radius: 14px; background: #102837; }
+.workshop-filter button { box-shadow: 0 3px 0 #061b28; background: #354d5b; }
+.workshop-filter .filter-mesh { stroke: #405c6c; stroke-width: 2; }
+@media(max-width:520px) {
+  .objective-device { flex-basis: 50px; }.objective-device>.workshop-equipment { width: 50px; height: 50px; }
+  .workshop-machine { padding-top: 28px; }
+  .workshop-transmission .transmission-endpoint .workshop-icon { width: 44px; height: 44px; }
+}
+/* Keep nested symbols independent of the large interactive diagram rules. */
+.day1-workshop .workshop-circuits button svg { position: static; inset: auto; width: 25px; height: 25px; }
+.day1-workshop .workshop-circuits button .circuit-shape * { fill: #e9c786; stroke: #fff0c4; stroke-width: 1; stroke-dasharray: none; animation: none; }
+.day1-workshop .workshop-circuits button .workshop-icon path { fill: none; stroke: #b4e8c7; stroke-width: 5; stroke-dasharray: none; animation: none; }
+.workshop-deposits b .workshop-icon { width: 27px; height: 27px; }
+.workshop-pipes>span .workshop-icon { width: 25px; height: 25px; stroke: none; stroke-width: 1; }
+.workshop-filter>span .workshop-icon { width: 35px; height: 35px; stroke: none; stroke-width: 1; }
+.workshop-routine .exercise-choices button,.routine-guide { display: inline-flex; justify-content: center; align-items: center; gap: 7px; }
+.routine-feet .right-foot { transform: scaleX(-1); }
+
+/* Refinement 6: quiet, optional teaching beside the activity. */
+.workshop-field-note { border: 1px solid #8aafbb32; border-radius: 12px; background: #aacbd706; min-width: 0; text-align: left; width: 100%; }
+.workshop-field-note summary { display: flex; align-items: center; gap: 9px; padding: 10px 12px; cursor: pointer; list-style: none; min-height: 49px; box-sizing: border-box; }
+.workshop-field-note summary::-webkit-details-marker { display: none; }
+.workshop-field-note summary>span { display: grid; gap: 4px; }
+.workshop-field-note summary strong { font-size: 11px; font-weight: 500; color: #c4d9d9; }
+.workshop-field-note summary small { font-size: 10px; color: #89aab8; }
+.workshop-field-note summary>b { margin-left: auto; font-size: 16px; color: #b8d1d5; font-weight: 400; transition: transform .2s; }
+.workshop-field-note[open] summary>b { transform: rotate(45deg); }
+.workshop-field-note[open] { border-color: #a1c3c94d; }
+.workshop-field-note summary:focus-visible { outline: 3px solid #e8bd70; outline-offset: 3px; border-radius: 10px; }
+.field-note-content { display: grid; gap: 9px; padding: 0 13px 13px; }
+.field-note-content p,.workshop-win .field-note-content p { margin: 0; font-size: 12px; line-height: 1.6; color: #b9d0d6; }
+.field-note-content p:first-child { color: #dbe8df; }
+.field-note-content .field-note-game { padding: 9px 10px; background: #c1b27a0a; border-radius: 8px; color: #9eb5be; font-size: 11px; }
+.field-note-game small { display: block; margin-bottom: 4px; color: #d9c38f; font-size: 10px; }
+.field-note-sources { display: flex; gap: 8px; flex-wrap: wrap; }
+.field-note-sources a { color: #9fc5d3; font-size: 10px; text-decoration: underline; text-underline-offset: 3px; padding: 5px 0; }
+.workshop-observation { display: flex; align-items: center; gap: 8px; margin: 0; padding: 9px 11px; background: #9bc1a60b; border-left: 2px solid #9bc1a666; border-radius: 0 8px 8px 0; color: #bbd3c9; font-size: 11px; line-height: 1.5; text-align: left; }
+.workshop-reference { display: grid; gap: 10px; margin-top: 15px; }
+.workshop-reference .workshop-field-note { background: #0c2230; }
+.workshop-win>.workshop-field-note { margin-top: 18px; }
+@media(prefers-reduced-motion:reduce) {
+  .workshop-equipment,.workshop-field-note summary>b { transition: none; animation: none; }
+  .workshop-objective,.workshop-observation { animation: none; }
+}

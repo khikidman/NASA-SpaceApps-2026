@@ -6,7 +6,7 @@ import { beginWalk, heightAt, walkAt, type HeightMotion, type WalkMotion } from 
 import { createAstronaut, type AstronautAtlas } from "./astronaut";
 import { gridCrossingPosition, homePartReveal } from "./home-transition";
 import { airlockAt, airlockCrossing } from "../world/airlock";
-import { AirlockVisual } from "./airlock-visual";
+import { AirlockVisual, type AirlockTextures } from "./airlock-visual";
 
 const flat = (points: readonly Point[]) => points.flatMap((p) => [p.x, p.y]);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -24,7 +24,7 @@ export class HomeInterior {
   private readonly selection = new Graphics();
   private readonly routeGraphic = new Graphics();
   private readonly parts: RoomPart[] = [];
-  private readonly airlockVisual = new AirlockVisual();
+  private readonly airlockVisual: AirlockVisual;
   private transition: HeightMotion = { from: 0, to: 0, start: 0, duration: 0 };
   private motion: WalkMotion | null = null;
   private route: GridPosition[] = [];
@@ -45,7 +45,8 @@ export class HomeInterior {
     { id: "exercise" as const, position: { col: 3, row: 3 }, label: "Move", color: 0xb0dca4 },
   ];
   constructor(private readonly changed: (inside: boolean) => void, atlas?: AstronautAtlas,
-    private readonly activateStation?: (id: "food" | "melt" | "exercise") => void) {
+    private readonly activateStation?: (id: "food" | "melt" | "exercise") => void, airlockTextures?: AirlockTextures) {
+    this.airlockVisual = new AirlockVisual(airlockTextures);
     this.astronaut = createAstronaut(atlas); this.traveler = createAstronaut(atlas);
     this.crossingAvatar = this.traveler.root;
     const back = new Container(), floor = new Container(), front = new Container();
@@ -85,8 +86,9 @@ export class HomeInterior {
       graphic.poly(flat(points.map((p) => ({ x: p.x * .86, y: p.y * .86 })))).stroke({ color: 0xe3efe1, alpha: .3, width: 1 });
     }
     this.parts.push({ container: this.airlockVisual.root, center: door, position: HOME_EXIT });
-    this.root.addChild(back, floor, this.airlockVisual.root, this.routeGraphic, this.hover, this.selection, this.astronaut.root, front);
-    const equipment = new Container(); this.root.addChildAt(equipment, this.root.children.length - 2);
+    this.parts.push({ container: this.airlockVisual.foreground, center: door, position: HOME_EXIT });
+    this.root.addChild(back, floor, this.airlockVisual.root, this.routeGraphic, this.hover, this.selection, this.astronaut.root, this.airlockVisual.foreground, front);
+    const equipment = new Container(); this.root.addChildAt(equipment, this.root.getChildIndex(this.astronaut.root));
     for (const station of this.stations) {
       const center = tileCenter(station.position), container = new Container(), graphic = new Graphics();
       container.position.set(center.x, center.y); container.visible = false;
@@ -206,7 +208,7 @@ export class HomeInterior {
       this.placePlayer(this.visual, 0, false);
     }
     const airlock = this.airlock;
-    this.airlockVisual.update(airlock);
+    this.airlockVisual.update(airlock, this.amount);
     // Hold the visible astronaut still while the sealed chamber changes pressure.
     const crossing = this.arriving ? airlockCrossing(airlock) : this.departing ? 1 - airlockCrossing(airlock) : 1;
     const placement = follow?.(this.visual, crossing);

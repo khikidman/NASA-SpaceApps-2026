@@ -1,80 +1,89 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GameArt } from "@/components/game-art";
 import { ResourceEffects } from "@/components/resource-effects";
 import { DAY1_CONFIG, DAY1_TASKS } from "@/data/day-one";
 import { applyEffects } from "@/game/engine";
-import type { GameAction, GameState, ResourceDelta, TutorialInput, TutorialTaskId } from "@/game/types";
+import { type GameAction, type GameState, type TutorialInput, type TutorialTaskId, type TutorialPlan } from "@/game/types";
+import { RadioGame, DetectorGame, IceGame, KitchenGame, MelterGame } from "./diorama-games";
+import { usePractice, clearPractice, useWorkshopMotion, integer, bool } from "./workshop-practice";
+import astronautFrames from "@/assets/characters/astronaut-atlas.json";
+import { ASTRONAUT_SHEET_SRC } from "@/assets/characters/astronaut-settings";
+import { WorkshopIcon } from "@/components/workshop-art";
+import { WorkshopFieldNote, WorkshopObservation } from "./workshop-notes";
+import { DioramaLearning } from "./diorama-learning";
+import { DioramaForecast } from "./diorama-forecast";
+import { DIORAMA_STAGE_SRC } from "./diorama-scene";
+import "./workshop-refinements.css";
+import "./living-diorama.css";
 
-const centered = (value: number) => value >= 45 && value <= 55;
 export function DayOnePanel({ game, taskId, act, onClose }: { game: GameState; taskId: TutorialTaskId; act(a: GameAction): void; onClose(): void }) {
-  const task = DAY1_TASKS.find((t) => t.id === taskId)!;
+  const task = DAY1_TASKS.find(t => t.id === taskId)!;
   const [input, setInput] = useState<TutorialInput | null>(null);
-  if (game.tutorial.completed.includes(taskId)) return <div className="tutorial-success"><GameArt name="check" size={90} /><h3>{taskId === "melt" ? "Base ready!" : "Nice work!"}</h3><button className="primary-button" onClick={onClose}>Keep exploring →</button></div>;
-  let affordable = true, gains: ResourceDelta = {};
-  try {
-    const after = applyEffects(game, task.cost, task.hours, task.reward);
-    gains = Object.fromEntries(Object.keys(task.cost).filter((k) => k !== "science" && (task.cost[k as keyof ResourceDelta] ?? 0) > 0).map(k => [k, after.resources[k as keyof ResourceDelta] - game.resources[k as keyof ResourceDelta]]));
-    gains.science = Math.min(task.reward, 10000 - game.resources.science - (task.cost.science ?? 0));
-  } catch { affordable = false; }
-  const costs = Object.fromEntries(Object.entries(task.cost).filter(([, value]) => value < 0));
-  return <section className="hands-on-task">
-    <p className="tutorial-instruction">{task.prompt}</p>
-    {task.kind === "repair" && <WireRepair onReady={setInput} />}
-    {task.kind === "calibrate" && <Calibration onReady={setInput} />}
-    {task.kind === "collect" && <IceCollection onReady={setInput} />}
-    {task.kind === "assemble" && <MachineAssembly onReady={setInput} />}
-    {task.kind === "convert" && <IceMelter ice={game.tutorial.ice} onReady={setInput} />}
-    <footer className="tutorial-commit"><div><ResourceEffects effects={costs} hours={task.hours} compact /><ResourceEffects effects={gains} compact /></div><button className="primary-button" disabled={!input || !affordable} onClick={() => input && act({ type: "tutorial-submit", taskId, input })}>{input ? "Finish ✓" : "Try it above ↑"}</button></footer>
-    <small className="tutorial-practice">Try freely. Supplies change only when you finish.</small>
+  const [plan, choosePlan] = usePractice<TutorialPlan>(game.seed, taskId, "plan", "standard", (v): v is TutorialPlan => v === "standard" || v === "boost"), [hint, showHint] = useState(false);
+  const [attempt, retry] = useState(0);
+  const root = useRef<HTMLElement>(null); useWorkshopMotion(root);
+  const complete = game.tutorial.completed.includes(taskId);
+  useEffect(() => { if (complete) clearPractice(game.seed, taskId); }, [complete, game.seed, taskId]);
+  const wins = { comms: ["Radio online!", "Next: set up your detector."], detector: ["Detector ready!", "Next: find three ice chunks."], ice: ["Ice packed!", "Bring your bucket home."], food: ["Kitchen working!", "Next: turn your ice into water."], melt: ["Water ready!", "Your base is ready for tonight."] };
+  if (game.tutorial.completed.includes(taskId)) return <div className="tutorial-success workshop-win diorama-success"><DioramaLearning task={taskId}/><div className="workshop-reward-orbit" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><GameArt name="check" size={90} /></div><h3>{wins[taskId][0]}</h3><p>{wins[taskId][1]}</p><button className="primary-button" onClick={onClose}>Keep exploring →</button><WorkshopFieldNote task={taskId} /></div>;
+  return <section className="day1-workshop living-diorama" ref={root} data-hint={hint}>
+    <DioramaLearning task={taskId} />
+    <div className="diorama-tools"><span>Mission {DAY1_TASKS.findIndex(t => t.id === taskId) + 1} / 5</span><div><button type="button" aria-label="Reset only this practice task" onClick={() => { clearPractice(game.seed, taskId); choosePlan("standard"); setInput(null); retry(n => n + 1); }}><WorkshopIcon name="reset" size={16}/>Reset</button><button type="button" aria-expanded={hint} onClick={() => showHint(!hint)}><WorkshopIcon name="hint" size={17}/>{hint ? "Hide hint" : "Hint"}</button></div></div>
+    {hint && <p className="diorama-help" role="status">{{ comms: "Match relay shapes, then line up both dish pointers. You can use the fine-tuning controls below.", detector: "Choose flat ground. Tap the feet until each metal post reaches its dashed height.", ice: "Inspect deposits. Turn each drill onto its bright seam, then pack the core.", food: "Fit the parts, turn the valves onto their outlines, and watch where the test flow stops.", melt: "Warm each batch to its game target. Connect treatment, open the valve, then check a sample." }[taskId]}</p>}
+    {taskId === "comms" && <RadioGame key={attempt} seed={game.seed} onReady={setInput} />}
+    {taskId === "detector" && <DetectorGame key={attempt} seed={game.seed} onReady={setInput} />}
+    {taskId === "ice" && <IceGame key={attempt} seed={game.seed} onReady={setInput} />}
+    {taskId === "food" && <KitchenGame key={attempt} seed={game.seed} onReady={setInput} />}
+    {taskId === "melt" && <MelterGame key={attempt} seed={game.seed} ice={game.tutorial.ice} onReady={setInput} />}
+    {input && <fieldset className="diorama-plans"><legend>Work mode</legend>{(["standard", "boost"] as const).map(mode => <label key={mode}><input type="radio" name={`work-plan-${taskId}`} checked={plan === mode} onChange={() => choosePlan(mode)} /><span>{mode === "standard" ? "Standard · save Power" : "Boost · spend Power to save Energy + time"}</span></label>)}</fieldset>}
+    <DioramaForecast game={game} task={task} plan={plan} ready={!!input} onFinish={() => input && act({type:"tutorial-submit",taskId,input:{...input,plan}})} />
+    <div className="diorama-science-notes"><WorkshopFieldNote task={taskId} /><span>Practice stays in this tab.</span></div>
   </section>;
 }
 
-const SHAPES = ["triangle", "circle", "square"] as const;
-const GLYPH = { triangle: "▲", circle: "●", square: "■" };
-function WireRepair({ onReady }: { onReady(i: TutorialInput | null): void }) {
-  const [selected, select] = useState<string | null>(null), [links, link] = useState<string[]>([]), [tuning, tune] = useState(20), [wrong, miss] = useState(false);
-  function refresh(next: string[], value: number) { onReady(next.length === 3 && centered(value) ? { kind: "repair", pairs: next, tuning: value } : null); }
-  function connect(to: string, from = selected) {
-    if (!from || links.includes(from)) return;
-    if (to !== from) { miss(true); return; }
-    const next = [...links, from]; link(next); select(null); miss(false); refresh(next, tuning);
-  }
-  return <><div className={`wire-board ${wrong ? "try-again" : ""}`}>
-    <svg viewBox="0 0 320 160" aria-hidden="true">{links.map((id) => { const left = SHAPES.indexOf(id as typeof SHAPES[number]), right = ["circle", "square", "triangle"].indexOf(id); return <path className={`wire wire-${id}`} key={id} d={`M 48 ${30 + left * 50} C 135 ${30 + left * 50}, 185 ${30 + right * 50}, 272 ${30 + right * 50}`} />; })}</svg>
-    <div className="wire-sockets">{SHAPES.map(id => <button className={`socket wire-${id} ${selected === id ? "selected" : ""} ${links.includes(id) ? "connected" : ""}`} key={id} aria-label={`Select ${id} wire`} aria-pressed={selected === id} disabled={links.includes(id)} draggable={!links.includes(id)} onDragStart={e => { select(id); e.dataTransfer.setData("text/plain", id); }} onClick={() => { select(id); miss(false); }}>{links.includes(id) ? "✓" : GLYPH[id]}</button>)}</div>
-    <div className="wire-sockets">{(["circle", "square", "triangle"] as const).map(id => <button key={id} className={`socket wire-${id} ${links.includes(id) ? "connected" : ""}`} aria-label={`Connect ${id} socket`} disabled={links.includes(id)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); connect(id, e.dataTransfer.getData("text/plain")); }} onClick={() => connect(id)}>{links.includes(id) ? "✓" : GLYPH[id]}</button>)}</div>
-  </div><p className="task-cue" role="status">{wrong ? "Same shape ↻" : links.length === 3 ? "Wires connected ✓" : "Tap a shape, then its matching socket."}</p><Tuning value={tuning} onChange={value => { tune(value); refresh(links, value); }} disabled={links.length !== 3} label="Radio signal" /></>;
+function ExerciseAvatar({ reps, method }: { reps: number; method: "cardio" | "weights" }) {
+  const frame = astronautFrames.frames[method === "cardio" && reps ? reps % 2 ? 2 : 5 : 0], scale = 105 / frame.referenceHeight;
+  return <div className={`routine-scene ${method}`} style={{backgroundImage:`url("${DIORAMA_STAGE_SRC}")`}}><div className="routine-floor" /><svg key={reps} className={reps ? "routine-astronaut rep-motion" : "routine-astronaut"} viewBox="-65 -125 130 145" role="img" aria-label={method === "cardio" ? "Your astronaut on the exercise mat" : "Your astronaut at the exercise station"}><svg x={-frame.anchorX * scale} y={-frame.anchorY * scale} width={frame.width * scale} height={frame.height * scale} viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`} overflow="hidden"><image href={ASTRONAUT_SHEET_SRC} width={astronautFrames.width} height={astronautFrames.height} /></svg></svg>{method === "weights" && <svg className={reps ? "routine-weight rep-motion" : "routine-weight"} key={`weight-${reps}`} viewBox="0 0 90 70" aria-hidden="true"><path d="M15 42 H75" stroke="#c8c8ba" strokeWidth="7"/><rect x="10" y="24" width="13" height="36" rx="4" fill="#535c6b"/><rect x="67" y="24" width="13" height="36" rx="4" fill="#535c6b"/><path d="M15 25 V59 M75 25 V59" stroke="#d9ac57" strokeWidth="3"/></svg>}</div>;
 }
-function Tuning({ value, onChange, label, disabled = false }: { value: number; onChange(v: number): void; label: string; disabled?: boolean }) {
-  return <div className={`tuning-unit ${!disabled && centered(value) ? "steady" : ""}`}><div className="signal-waves" aria-hidden="true"><svg viewBox="0 0 320 64"><path className="target-wave" d="M0 32 Q20 -5 40 32 T80 32 T120 32 T160 32 T200 32 T240 32 T280 32 T320 32" /><path style={{ transform: `translateX(${(value - 50) * .6}px)` }} d="M0 32 Q20 -5 40 32 T80 32 T120 32 T160 32 T200 32 T240 32 T280 32 T320 32" /></svg></div><label>{label}<span>{!disabled && centered(value) ? "✓ Steady" : "Aim for the center"}</span><span className="tuning-track"><i /><input type="range" min={0} max={100} value={value} disabled={disabled} aria-label={label} onChange={e => onChange(+e.target.value)} /></span></label><button type="button" className="gentle-step" disabled={disabled || centered(value)} onClick={() => onChange(value < 50 ? Math.min(50, value + 10) : Math.max(50, value - 10))}>Turn gently ↻</button></div>;
-}
-function Calibration({ onReady }: { onReady(i: TutorialInput | null): void }) {
-  const [placed, place] = useState(false), [reading, read] = useState(10);
-  return <><div className={`detector-scene ${placed ? "installed" : ""}`}><span className="detector-ground" /><GameArt name="sensor" size={110} /><button disabled={placed} onClick={() => place(true)}>{placed ? "Placed ✓" : "Plant detector ↓"}</button></div><Tuning value={reading} disabled={!placed} label="Detector calibration" onChange={value => { read(value); onReady(placed && centered(value) ? { kind: "calibrate", placed: true, reading: value } : null); }} /></>;
-}
-function IceCollection({ onReady }: { onReady(i: TutorialInput | null): void }) {
-  const [pieces, setPieces] = useState<Record<string, number>>({});
-  const ids = ["ice-a", "ice-b", "ice-c"];
-  function drill(id: string) { const next = { ...pieces, [id]: Math.min(2, (pieces[id] ?? 0) + 1) }; setPieces(next); const gathered = ids.filter(k => next[k] === 2); onReady(gathered.length === 3 ? { kind: "collect", pieces: gathered } : null); }
-  return <div className="ice-cave-game"><div className="ice-vein">{ids.map((id, index) => <button key={id} className={`ice-chunk stage-${pieces[id] ?? 0}`} disabled={pieces[id] === 2} onClick={() => drill(id)} aria-label={`Drill ice chunk ${index + 1}`}><span>◆</span><small>{pieces[id] === 2 ? "✓" : pieces[id] === 1 ? "Cracked" : "Drill"}</small></button>)}</div><div className="ice-bucket" role="status" aria-label={`${ids.filter(id => pieces[id] === 2).length} of 3 ice pieces collected`}>▱ {ids.map(id => <span className={pieces[id] === 2 ? "collected" : ""} key={id}>◆</span>)}</div></div>;
-}
-function MachineAssembly({ onReady }: { onReady(i: TutorialInput | null): void }) {
-  const ids = ["gear", "filter", "tray"], glyphs = ["⚙", "▥", "▰"];
-  const [parts, fit] = useState<string[]>([]), [selected, select] = useState<string | null>(null);
-  function place(id: string, from = selected) { if (from !== id || parts.includes(id)) return; const next = [...parts, id]; fit(next); select(null); onReady(next.length === 3 ? { kind: "assemble", parts: next } : null); }
-  return <div className="assembly-game"><div className={`food-machine ${parts.length === 3 ? "working" : ""}`}><span className="machine-light" />{ids.map((id, i) => <button key={id} className={`part-slot ${parts.includes(id) ? "filled" : ""}`} aria-label={`Fit ${id}`} onClick={() => place(id)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); place(id, e.dataTransfer.getData("text/plain")); }}>{glyphs[i]}</button>)}</div><div className="parts-tray">{ids.map((id, i) => <button key={id} draggable={!parts.includes(id)} disabled={parts.includes(id)} aria-label={`Select ${id}`} aria-pressed={selected === id} className={selected === id ? "selected" : ""} onDragStart={e => { select(id); e.dataTransfer.setData("text/plain", id); }} onClick={() => select(id)}>{glyphs[i]}<small>{id}</small></button>)}</div><p className="task-cue">Pick a part. Tap its matching space.</p></div>;
-}
-function IceMelter({ ice, onReady }: { ice: number; onReady(i: TutorialInput | null): void }) {
-  const [loaded, load] = useState(false), [heat, warm] = useState(10);
-  return <><div className={`melter ${loaded ? "loaded" : ""} ${centered(heat) && loaded ? "melting" : ""}`}><div className="melter-tank"><span className="melt-water" /><span className="melt-ice">◆ ◆ ◆</span></div><button disabled={loaded || ice !== 3} onClick={() => load(true)}>{loaded ? "Bucket loaded ✓" : "Load ice ↓"}</button></div><Tuning value={heat} label="Heater control" disabled={!loaded} onChange={value => { warm(value); onReady(loaded && centered(value) ? { kind: "convert", loaded, heat: value } : null); }} /></>;
-}
-
 export function ExercisePanel({ game, act, onClose }: { game: GameState; act(a: GameAction): void; onClose(): void }) {
-  const [method, choose] = useState<"cardio" | "weights">("cardio"), [reps, rep] = useState(0), [steady, assist] = useState(true), [missed, miss] = useState(false);
-  const start = useRef(0);
-  if (game.tutorial.exercise !== "pending") return <div className="tutorial-success"><GameArt name={game.tutorial.fatigue ? "dark" : "check"} size={90} /><h3>{game.tutorial.fatigue ? "Rest today" : "Routine complete!"}</h3>{game.tutorial.fatigue && <p>Tomorrow starts at {DAY1_CONFIG.fatigueMorningEnergy} Energy.</p>}<button className="primary-button" onClick={onClose}>Night plan →</button></div>;
-  const affordable = game.timeLeft >= DAY1_CONFIG.exerciseHours && game.resources.energy >= 5 && game.resources.water >= 2 && game.resources.science >= 1;
-  function move() { const phase = ((performance.now() - start.current) % 1800) / 1800; if (method === "cardio" || steady || phase > .35 && phase < .65) { rep(n => Math.min(4, n + 1)); miss(false); } else miss(true); }
-  return <section className="exercise-game"><div className="exercise-choices"><button aria-pressed={method === "cardio"} onClick={() => { choose("cardio"); rep(0); }}>Cardio</button><button aria-pressed={method === "weights"} onClick={() => { choose("weights"); rep(0); start.current = performance.now(); }}>Weights</button></div><div className={`exercise-actor ${reps > 0 ? "moving" : ""}`} key={reps}><GameArt name={method === "weights" ? "tools" : "sun"} size={100} /><div className="repetition-pips" aria-label={`${reps} of 4 repetitions`}>{[0, 1, 2, 3].map(i => <i key={i} className={i < reps ? "done" : ""} />)}</div></div>{method === "weights" && <><label className="steady-option"><input type="checkbox" checked={steady} onChange={e => { assist(e.target.checked); start.current = performance.now(); }} />Steady mode</label>{!steady && <div className="exercise-timing"><i /><b /></div>}</>}<button className="exercise-rep" onClick={move} disabled={reps >= 4}>{reps === 4 ? "Four done ✓" : method === "weights" ? "Lift ↑" : "Step →"}</button><p className="task-cue" role="status">{missed ? "Try the middle ↻" : method === "cardio" || steady ? "Any pace. Space works too." : "Lift when the marker reaches the center."}</p><ResourceEffects effects={DAY1_CONFIG.exerciseCost} hours={DAY1_CONFIG.exerciseHours} compact /><ResourceEffects effects={{ science: DAY1_CONFIG.exerciseReward }} compact /><button className="primary-button" disabled={reps !== 4 || !affordable} onClick={() => act({ type: "tutorial-exercise", method, repetitions: reps })}>Finish routine ✓</button><button className="skip-routine" onClick={() => act({ type: "tutorial-exercise", method: "skip", repetitions: 0 })}>Skip · start tomorrow with {DAY1_CONFIG.fatigueMorningEnergy} Energy</button></section>;
+  const [method, choose] = usePractice<"cardio" | "weights">(game.seed, "exercise", "method", "cardio", (v): v is "cardio" | "weights" => v === "cardio" || v === "weights");
+  const [reps, rep] = usePractice(game.seed, "exercise", "reps", 0, integer(0, 4)), [guided, guide] = usePractice(game.seed, "exercise", "guided", true, bool);
+  const [auto, autoTo] = useState(false), [cue, say] = useState("Four gentle moves. Go at your pace.");
+  const marker = useRef<HTMLElement>(null), root = useRef<HTMLElement>(null); useWorkshopMotion(root);
+  const done = game.tutorial.exercise !== "pending";
+  useEffect(() => { if (done) clearPractice(game.seed, "exercise"); }, [done, game.seed]);
+  useEffect(() => {
+    if (!auto || reps >= 4) return;
+    const timer = setInterval(() => { if (!document.hidden) rep(n => Math.min(4, n + 1)); }, 950);
+    return () => clearInterval(timer);
+  }, [auto, reps, rep]);
+  if (done) return <div className="tutorial-success workshop-win"><GameArt name={game.tutorial.fatigue ? "dark" : "check"} size={90} /><h3>{game.tutorial.fatigue ? "Rest today" : "Routine complete!"}</h3><p>{game.tutorial.fatigue ? `Tomorrow starts at ${DAY1_CONFIG.fatigueMorningEnergy} Energy.` : "Four moves done. Ready for tomorrow."}</p><button className="primary-button" onClick={onClose}>Night plan →</button></div>;
+  let affordable = true;
+  try { applyEffects(game, DAY1_CONFIG.exerciseCost, DAY1_CONFIG.exerciseHours, DAY1_CONFIG.exerciseReward); } catch { affordable = false; }
+  function move(foot?: number) {
+    if (auto || reps >= 4) return;
+    if (!guided && method === "cardio" && foot !== reps % 2) { say("Try the glowing foot. No rush."); return; }
+    if (!guided && method === "weights" && marker.current?.parentElement) {
+      const m = marker.current.getBoundingClientRect(), track = marker.current.parentElement.getBoundingClientRect();
+      const at = (m.left + m.width / 2 - track.left) / track.width;
+      if (at < .32 || at > .68) { say("Aim for the center, or switch on Guided mode."); return; }
+    }
+    rep(n => Math.min(4, n + 1)); say(reps === 3 ? "Four done!" : "Nice and steady ✓");
+  }
+  return <section className="day1-workshop workshop-routine living-diorama" ref={root}><DioramaLearning task="exercise"/>
+    <div className="exercise-choices">{(["cardio", "weights"] as const).map(mode => <button key={mode} type="button" aria-pressed={method === mode} onClick={() => { choose(mode); rep(0); autoTo(false); say(mode === "cardio" ? "Alternate feet. Any pace." : "Lift gently. Try the center band."); }}><WorkshopIcon name={mode === "cardio" ? "foot" : "lift"} size={21} />{mode === "cardio" ? "Space steps" : "Gentle lifts"}</button>)}</div>
+    <ExerciseAvatar reps={reps} method={method} />
+    <div className="routine-progress" role="progressbar" aria-label="Exercise repetitions" aria-valuemin={0} aria-valuemax={4} aria-valuenow={reps}>{[0, 1, 2, 3].map(i => <span key={i} className={i < reps ? "done" : ""}>{i < reps ? "✓" : i + 1}</span>)}</div>
+    <label className="steady-option"><input type="checkbox" checked={guided} onChange={e => { guide(e.target.checked); autoTo(false); }} />Guided mode · no timing needed</label>
+    {!guided && method === "weights" && <div className="routine-timing" aria-label="Lift when the marker is in the outlined center band"><i /><b ref={marker} /></div>}
+    {!guided && method === "cardio" ? <div className="routine-feet">{[0, 1].map(foot => <button key={foot} type="button" disabled={reps >= 4 || auto} aria-label={`Step with ${foot === 0 ? "left" : "right"} foot`} className={reps % 2 === foot && reps < 4 ? "next-foot" : ""} onClick={() => move(foot)}><WorkshopIcon name="foot" size={32} className={foot === 1 ? "right-foot" : ""} /><small>{foot === 0 ? "Left" : "Right"}</small></button>)}</div> : <button className="exercise-rep" type="button" onClick={() => move()} disabled={reps >= 4 || auto}>{reps >= 4 ? "Four done ✓" : method === "weights" ? "Lift ↑" : "Step →"}</button>}
+    {guided && reps < 4 && <button type="button" className="routine-guide" onClick={() => autoTo(!auto)}><WorkshopIcon name={auto ? "pause" : "play"} size={18} />{auto ? "Pause guide" : "Follow the guide"}</button>}
+    <p className="workshop-cue" role="status">{cue}</p>
+    {reps === 4 && <WorkshopObservation task="exercise" />}
+    <WorkshopFieldNote task="exercise" />
+    <div className="workshop-commit"><ResourceEffects effects={DAY1_CONFIG.exerciseCost} hours={DAY1_CONFIG.exerciseHours} compact /><ResourceEffects effects={{ science: DAY1_CONFIG.exerciseReward }} compact /><button className="primary-button" disabled={reps !== 4 || !affordable} onClick={() => act({ type: "tutorial-exercise", method, repetitions: reps })}>Finish routine ✓</button></div>
+    {!affordable && <p className="workshop-cue">Save your supplies: you can choose rest instead.</p>}
+    <button type="button" className="skip-routine" onClick={() => { autoTo(false); act({ type: "tutorial-exercise", method: "skip", repetitions: 0 }); }}>Choose rest · tomorrow starts at {DAY1_CONFIG.fatigueMorningEnergy} Energy</button>
+  </section>;
 }

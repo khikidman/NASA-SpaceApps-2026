@@ -1,4 +1,12 @@
 {
+  "airlock-tunnel-exterior-solid": {
+    "height": 42.02333931777379,
+    "scale": 0.25,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
   "lunar-v2-base-habitat": {
     "height": 50,
     "scale": 0.08480565371024736,
@@ -74,6 +82,46 @@
   "moon-flag": {
     "height": 64,
     "scale": 0.065,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "habitat-dome-v1": {
+    "height": 73.02333931777379,
+    "scale": 0.25,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "habitat-oxygen-v1": {
+    "height": 76.02333931777379,
+    "scale": 0.25,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "habitat-junction-v1": {
+    "height": 44.02333931777379,
+    "scale": 0.25,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "habitat-plant-v1": {
+    "height": 77.02333931777379,
+    "scale": 0.25,
+    "footprint": {
+      "width": 1,
+      "height": 1
+    }
+  },
+  "habitat-research-v1": {
+    "height": 68.02333931777379,
+    "scale": 0.25,
     "footprint": {
       "width": 1,
       "height": 1

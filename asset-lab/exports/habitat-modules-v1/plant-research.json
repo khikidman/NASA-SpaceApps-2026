@@ -1,0 +1,37 @@
+{
+  "format": "asset-lab.habitat-modules/v1",
+  "reference": "../airlock-tunnel-v1",
+  "tile": {
+    "width": 96,
+    "height": 48
+  },
+  "footprint": {
+    "width": 1,
+    "height": 1
+  },
+  "shellHeight": 42.02333931777379,
+  "settings": {
+    "brightness": 1,
+    "contrast": 1,
+    "saturation": 1,
+    "scale": 0.25,
+    "anchorX": 0.5,
+    "anchorY": 0.78125,
+    "frameWidth": 1024,
+    "frameHeight": 1024
+  },
+  "assets": [
+    {
+      "id": "habitat-plant-v1",
+      "file": "plant",
+      "title": "Habitat · plant bay",
+      "height": 77.02333931777379
+    },
+    {
+      "id": "habitat-research-v1",
+      "file": "research",
+      "title": "Habitat · research bay",
+      "height": 68.02333931777379
+    }
+  ]
+}
