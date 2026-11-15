@@ -1,5 +1,10 @@
 # Concept review
 
+Historical proposal below. The user subsequently selected **A: Living Diorama**
+with simplified UI and prominent learning. See the [implementation contract](../../living-diorama-implementation.md)
+and [accepted decisions](../../context/DECISIONS.md). The earlier B-led recommendation
+is superseded; the original concept comparison is retained for provenance.
+
 Generated with the built-in image-generation tool as visual proposals, not game
 screenshots. Exact prompts are in `prompts.json`; the current game is unchanged.
 

@@ -8,6 +8,8 @@ result, and learn. Favor satisfying play over reading and menu navigation.
 
 - Follow the active user request and higher-priority instructions. These project
   defaults do not create an additional permission or approval process.
+- Read the [team context hub](docs/context/README.md) when joining or resuming work.
+  Keep its current state, decisions, workboard and dated handoffs up to date.
 - Read the relevant sections of [the development playbook](docs/agent-development-rules.md)
   before changing gameplay, art integration, UI, or animation.
 - Consult [the planning reference and decision log](docs/agent-planning-reference.md)
@@ -21,8 +23,9 @@ result, and learn. Favor satisfying play over reading and menu navigation.
 
 1. Every new gameplay interaction needs a clear physical verb, visible goal,
    understandable trade-off, satisfying feedback, and a recoverable outcome.
-2. Use pictures, motion, placement, gauges, and demonstrations first. Keep required
-   copy short; put explanations and citations in optional help or the discovery book.
+2. Use pictures, motion, placement, gauges, and demonstrations first. Give short
+   learning facts high visual priority. Keep required copy short; put deeper
+   explanations and citations in optional help or the discovery book.
 3. Show gains with green `+` and costs with red `−`, plus icons and numbers. Color
    and sound must never be the only way to understand a state or finish a task.
 4. A meaningful decision changes a later outcome. Do not disguise a fixed answer

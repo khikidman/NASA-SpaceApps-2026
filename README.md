@@ -6,6 +6,8 @@ For development with LLMs and agents, start with [AGENTS.md](AGENTS.md), the
 [game development playbook](docs/agent-development-rules.md), and the
 [research planning decisions](docs/agent-planning-reference.md).
 Use the [agent task brief](docs/agent-task-template.md) to assign a focused feature.
+For shared project context and teammate handoffs, start with the
+[team context hub](docs/context/README.md).
 
 ## Run locally
 

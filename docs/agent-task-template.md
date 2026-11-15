@@ -8,7 +8,7 @@ material. For a small visual fix, use only the relevant fields.
 
 Implement **[one feature or playable slice]** in the existing Space Explorer game.
 
-Read `AGENTS.md`, the relevant sections of `docs/agent-development-rules.md`, and
+Read `AGENTS.md`, `docs/context/README.md`, the relevant sections of `docs/agent-development-rules.md`, and
 the applicable rows of `docs/agent-planning-reference.md`. Inspect the current
 implementation before editing. Reuse its engine, world, HUD, animation system,
 asset catalog, and saves. Preserve unrelated work.
@@ -43,7 +43,8 @@ crop decisions or scientific measurements.
 Build a complete small loop: approach → demonstrate/try → choose → commit → see
 the result → return to play. Prefer manipulating an object to answering another
 quiz. Use short prompts, contextual controls, signed resource previews, and a
-visible object/meter change. Keep science explanations optional.
+visible object/meter change. Give short learning facts high visual priority;
+keep deeper science explanations and source details optional.
 
 Provide retry, hints, cancellation, keyboard/touch alternatives, and reduced-motion
 behavior. Avoid rapid-input or audio-only gates. Show one clear next action when a
@@ -69,6 +70,9 @@ intentions and display confirmed outcomes. Do not introduce a runtime LLM, a sec
 state store, an independent game clock, or a separate engine for this day.
 
 ## Handoff
+
+Record the result with [the shared handoff template](context/HANDOFF_TEMPLATE.md)
+and update [the team workboard](context/WORKBOARD.md).
 
 Deliver the integrated slice with a concise account of:
 
