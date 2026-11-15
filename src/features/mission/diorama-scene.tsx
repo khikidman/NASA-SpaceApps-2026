@@ -25,13 +25,19 @@ export function DioramaStage({ name, inspect, children }: { name: string; inspec
     <span className="diorama-model-label">Illustrated teaching model</span>
   </div>;
 }
-export function Prop({ x, y, label, selected=false, done=false, disabled=false, onTap, children, scale=1, labelSide }: { x:number; y:number; label:string; selected?:boolean; done?:boolean; disabled?:boolean; onTap?():void; children:ReactNode; scale?:number; labelSide?:"left"|"right" }) {
+export function Prop({ x, y, label, selected=false, done=false, disabled=false, onTap, children, scale=1, labelSide, labelBubble=false, labelOffsetY=0 }: { x:number; y:number; label:string; selected?:boolean; done?:boolean; disabled?:boolean; onTap?():void; children:ReactNode; scale?:number; labelSide?:"left"|"right"; labelBubble?:boolean; labelOffsetY?:number }) {
+  const labelElement = useRef<SVGTextElement>(null), [labelWidth, setLabelWidth] = useState(() => label.length * 8);
+  useEffect(() => {
+    if (labelBubble && labelElement.current) setLabelWidth(labelElement.current.getComputedTextLength());
+  }, [label, labelBubble]);
+  const bubbleWidth = labelWidth + 12, bubbleX = labelSide === "left" ? -50 - labelWidth - 6 : 44;
   return <g transform={`translate(${x} ${y})`} className="diorama-prop" role={onTap?"button":undefined} tabIndex={onTap&&!disabled?0:undefined} aria-label={label} aria-pressed={onTap?selected:undefined} aria-disabled={disabled||undefined} data-selected={selected} data-done={done} onClick={() => !disabled&&onTap?.()} onKeyDown={e=>{if(onTap&&!disabled&&(e.key==="Enter"||e.key===" ")){e.preventDefault();onTap();}}}>
     <ellipse className="prop-shadow" cx="0" cy="15" rx={57*scale} ry={18*scale} fill="#0b1524" opacity=".42" />
     {onTap && <ellipse className="prop-halo" cx="0" cy="15" rx={63*scale} ry={24*scale} fill="none" stroke={done?"#b0e4bf":"#f0ce83"} strokeWidth={selected?3:1.2} strokeDasharray={selected?undefined:"4 5"} opacity={selected||done?1:.55} />}
     <g transform={`scale(${scale})`} className="prop-body"><g className="prop-response">{children}</g></g>
     {done&&<g className="prop-check" transform="translate(40 -82)"><circle r="14" fill="#244c3e" stroke="#ade3bf"/><path d="m-7 0 5 5 10-11" stroke="#c3edcc" strokeWidth="3" fill="none"/></g>}
-    <text className={labelSide ? "diorama-object-label diorama-side-label" : "diorama-object-label"} x={labelSide==="left"?-50:labelSide==="right"?50:0} y={labelSide?-48:48*scale} textAnchor={labelSide==="left"?"end":labelSide==="right"?"start":"middle"}>{label}</text>
+    {labelBubble && labelSide && <rect className="diorama-label-bubble" x={bubbleX} y="-65" width={bubbleWidth} height="24" rx="8" />}
+    <text ref={labelElement} className={labelSide ? "diorama-object-label diorama-side-label" : "diorama-object-label"} x={labelSide==="left"?-50:labelSide==="right"?50:0} y={labelSide?-48:48*scale+labelOffsetY} textAnchor={labelSide==="left"?"end":labelSide==="right"?"start":"middle"}>{label}</text>
     {onTap&&<rect className="prop-hit" x={-66*scale} y={-90*scale} width={132*scale} height={125*scale} rx="20" fill="transparent" />}
   </g>;
 }
