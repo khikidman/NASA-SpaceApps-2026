@@ -27,7 +27,7 @@ describe("isometric projection and picking", () => {
       const roofCenter = gridToWorld({ col: entity.position.col + entity.footprint.width / 2, row: entity.position.row + entity.footprint.height / 2 });
       roofCenter.y -= entity.height;
       expect(pointInPolygon(roofCenter, entitySilhouette(entity))).toBe(true);
-      expect(pickWorldPosition(world, roofCenter)).toEqual(entity.position);
+      expect(pickWorldPosition({ ...world, entities: [entity] }, roofCenter)).toEqual(entity.position);
     }
   });
 

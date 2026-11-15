@@ -1,0 +1,47 @@
+{
+  "hull": {
+    "src": "/assets/buildings/lunar-base-modules/hull.png",
+    "anchorX": 623.5,
+    "anchorY": 652,
+    "pixelWidth": 909,
+    "displayWidth": 96
+  },
+  "airlock": {
+    "src": "/assets/buildings/lunar-base-modules/airlock.png",
+    "anchorX": 615.5,
+    "anchorY": 844.75,
+    "pixelWidth": 557,
+    "displayWidth": 48,
+    "openingHeight": 360
+  },
+  "vent-intake": {
+    "src": "/assets/buildings/lunar-base-modules/vent-intake.png",
+    "anchorX": 616,
+    "anchorY": 880,
+    "pixelWidth": 780,
+    "displayWidth": 58
+  },
+  "vent-exhaust": {
+    "src": "/assets/buildings/lunar-base-modules/vent-exhaust.png",
+    "anchorX": 623,
+    "anchorY": 900.5,
+    "pixelWidth": 650,
+    "displayWidth": 54
+  },
+  "antenna": {
+    "src": "/assets/buildings/lunar-base-modules/antenna.png",
+    "anchorX": 626.5,
+    "anchorY": 961.75,
+    "pixelWidth": 217,
+    "displayWidth": 24,
+    "beaconX": 626.5,
+    "beaconY": 352
+  },
+  "dome": {
+    "src": "/assets/buildings/lunar-base-modules/dome.png",
+    "anchorX": 622.5,
+    "anchorY": 801.25,
+    "pixelWidth": 967,
+    "displayWidth": 84
+  }
+}

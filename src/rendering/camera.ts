@@ -16,6 +16,12 @@ export function screenToWorld(point: Point, camera: Camera): Point {
   return { x: (point.x - camera.x) / camera.zoom, y: (point.y - camera.y) / camera.zoom };
 }
 
+/** Follow a displayed world point while preserving the current pan and zoom. */
+export function followCamera(camera: Camera, previous: Point, next: Point): Camera {
+  return { ...camera, x: camera.x + (previous.x - next.x) * camera.zoom,
+    y: camera.y + (previous.y - next.y) * camera.zoom };
+}
+
 export function zoomAt(camera: Camera, anchor: Point, requestedZoom: number): Camera {
   const zoom = clamp(requestedZoom, MIN_ZOOM, MAX_ZOOM);
   const point = screenToWorld(anchor, camera);

@@ -1,16 +1,23 @@
 import { Application, RendererType, type WebGLRenderer } from "pixi.js";
 import { tileCenter, worldBounds } from "../world/isometric";
+import { atHomeDoor } from "../world/home";
+import { HomeInterior } from "./home-interior";
+import { homeWorldFocus } from "./home-transition";
 import { nearbyBounds } from "../world/visibility";
 import type { GridPosition, Point, WorldMap, WorldPresentation, WorldRenderState } from "../world/types";
-import { constrainCamera, fitCamera, screenToWorld, zoomAt, type Camera } from "./camera";
+import { constrainCamera, fitCamera, followCamera, screenToWorld, zoomAt, type Camera } from "./camera";
 import type { WorldRenderer, WorldRendererCallbacks } from "./types";
 import { buildHomeMarker, buildWorldScene } from "./world-scene";
 import { homeGuidance } from "./home-guide";
 import { LunarSurfaceAtlas } from "./lunar-surface";
 import { beginWalk, walkAt, retimeWalk, presenceAt, STEP_MS, type WalkMotion } from "./motion";
+import { LUNAR_BASE_ASSET, loadLunarBaseTextures, type BaseTextures } from "./lunar-base";
+import { loadAstronautAtlas, type AstronautAtlas } from "./astronaut";
+import { ASTRONAUT_SHEET_SRC, ASTRONAUT_WORLD_HEIGHT } from "../assets/characters/astronaut-settings";
 
 class PixiWorldRenderer implements WorldRenderer {
   private scene;
+  private readonly home: HomeInterior;
   private readonly lunar: LunarSurfaceAtlas | undefined;
   private readonly homeMarker = buildHomeMarker();
   private readonly objectiveMarker = buildHomeMarker("MISSION");
@@ -46,6 +53,9 @@ class PixiWorldRenderer implements WorldRenderer {
   private minimumZoom = 0;
   private area = { left: 0, top: 0, width: 80, height: 80 };
   private renderedFrames = 0;
+  private enterRequested = false;
+  private homeFocus: Point | null = null;
+  private reportedAirlock = "";
 
   constructor(
     private readonly app: Application<WebGLRenderer>,
@@ -53,6 +63,8 @@ class PixiWorldRenderer implements WorldRenderer {
     private readonly world: WorldMap,
     initialState: WorldRenderState,
     private readonly callbacks: WorldRendererCallbacks,
+    baseTextures: BaseTextures,
+    private readonly astronautAtlas: AstronautAtlas,
   ) {
     this.bounds = worldBounds(world.width, world.height);
     // Native canvas input owns picking; detach Pixi's duplicate event listeners.
@@ -61,8 +73,13 @@ class PixiWorldRenderer implements WorldRenderer {
     this.snapshot = initialState;
     this.visualPlayer = { ...initialState.player };
     this.lunar = world.levelId === "moon" ? new LunarSurfaceAtlas(world.seed) : undefined;
-    this.scene = buildWorldScene(world, initialState.player, this.lunar);
-    this.app.stage.addChild(this.scene.root, this.homeMarker.root, this.objectiveMarker.root);
+    this.scene = buildWorldScene(world, initialState.player, this.lunar, baseTextures, astronautAtlas);
+    this.home = new HomeInterior((inside) => {
+      if (!inside) this.scene.facePlayer({ col: 0, row: 1 });
+      this.callbacks.onHomeChange(inside);
+      this.app.canvas.setAttribute("aria-label", inside ? "Home base interior. Five by five floor. Click or use arrows or WASD to walk. Walk through the doorway or press Escape to leave." : `${world.location} exploration world. Click to walk. E enters a nearby stop.`);
+    }, astronautAtlas);
+    this.app.stage.addChild(this.scene.root, this.home.root, this.home.crossingAvatar, this.homeMarker.root, this.objectiveMarker.root);
     this.scene.setSelection(initialState.selected, performance.now(), false);
 
     const canvas = this.app.canvas;
@@ -73,6 +90,13 @@ class PixiWorldRenderer implements WorldRenderer {
     canvas.dataset.renderer = "webgl";
     canvas.dataset.surface = this.lunar ? "lunar-regolith-atlas" : "mars";
     canvas.dataset.surfaceVariants = String(this.lunar?.textures.length ?? 0);
+    canvas.dataset.baseAsset = LUNAR_BASE_ASSET.src;
+    canvas.dataset.baseFootprint = "3x3";
+    canvas.dataset.baseModules = "6";
+    canvas.dataset.baseTileObjects = "9";
+    canvas.dataset.baseEntrance = "southwest";
+    canvas.dataset.characterAsset = ASTRONAUT_SHEET_SRC;
+    canvas.dataset.characterHeight = ASTRONAUT_WORLD_HEIGHT.toFixed(2);
     this.reportVisibleScene();
     this.host.appendChild(canvas);
     this.bindInput();
@@ -89,7 +113,7 @@ class PixiWorldRenderer implements WorldRenderer {
     this.height = height;
     this.app.renderer.resize(width, height, Math.min(window.devicePixelRatio || 1, 2));
     this.area = this.readViewArea();
-    this.fit();
+    this.fitSurface();
   }
 
   /** CSS defines the HUD safe area; picking still uses the full canvas. */
@@ -115,7 +139,7 @@ class PixiWorldRenderer implements WorldRenderer {
     const area = this.viewArea();
     const guide = homeGuidance(this.snapshot.player, this.world.home,
       { ...this.camera, x: this.camera.x - area.left, y: this.camera.y - area.top }, area.width, area.height);
-    this.homeMarker.root.visible = !!guide;
+    this.homeMarker.root.visible = !this.home.open && !!guide;
     this.app.canvas.dataset.homeGuide = String(!!guide);
     if (guide) {
       this.homeMarker.root.position.set(guide.x + area.left, guide.y + area.top);
@@ -124,7 +148,7 @@ class PixiWorldRenderer implements WorldRenderer {
     }
     const goal = this.objective && homeGuidance(this.snapshot.player, this.objective,
       { ...this.camera, x: this.camera.x - area.left, y: this.camera.y - area.top }, area.width, area.height);
-    this.objectiveMarker.root.visible = !!goal;
+    this.objectiveMarker.root.visible = !this.home.open && !!goal;
     if (goal) {
       let x = goal.x + area.left;
       if (guide && Math.hypot(goal.x - guide.x, goal.y - guide.y) < 95) x = Math.max(area.left + 75, Math.min(area.left + area.width - 75, x + (goal.x > area.width / 2 ? -95 : 95)));
@@ -165,19 +189,43 @@ class PixiWorldRenderer implements WorldRenderer {
           if (!target) this.scene.pulse(now);
         }
       }
+      if (this.enterRequested && !this.motion && !this.queuedMotion && !this.timedStep) this.beginHome(now);
       const animating = this.scene.update(now, this.reduced);
       this.scene.drawRoute(this.visualPlayer, this.snapshot.player, this.snapshot.route ?? []);
+      const homeCell = this.scene.cells.get(`${this.world.home.col},${this.world.home.row}`);
+      const homeCenter = tileCenter(this.world.home);
+      homeCenter.y += homeCell?.offset ?? 0;
+      const outsideFeet = tileCenter(this.visualPlayer);
+      const homeAnimating = this.home.update(now, this.reduced,
+        { x: homeCenter.x * this.camera.zoom + this.camera.x, y: homeCenter.y * this.camera.zoom + this.camera.y }, this.camera.zoom,
+        { x: outsideFeet.x * this.camera.zoom + this.camera.x, y: outsideFeet.y * this.camera.zoom + this.camera.y },
+        (player, progress) => {
+          const next = homeWorldFocus(homeCenter, outsideFeet, player, progress);
+          if (!this.drag?.moved) {
+            const tracked = followCamera(this.camera, this.homeFocus ?? outsideFeet, next);
+            if (this.drag) { this.drag.camera.x += tracked.x - this.camera.x; this.drag.camera.y += tracked.y - this.camera.y; }
+            this.camera = constrainCamera(tracked, this.bounds, this.width, this.height);
+          }
+          this.homeFocus = next;
+          return { home: { x: homeCenter.x * this.camera.zoom + this.camera.x, y: homeCenter.y * this.camera.zoom + this.camera.y },
+            outsidePlayer: { x: outsideFeet.x * this.camera.zoom + this.camera.x, y: outsideFeet.y * this.camera.zoom + this.camera.y } };
+        });
+      if (!this.home.open) this.homeFocus = null;
+      this.scene.setPlayerVisible(!this.home.open);
+      this.scene.setHomeTransition(this.home.progress, now, this.reduced);
+      this.scene.root.alpha = 1;
+      this.scene.root.visible = this.home.progress < 1;
       this.applyCamera();
       if (this.pointer && !this.drag?.moved) {
         const hovered = this.pick(this.pointer);
         if (hovered?.col !== this.hover?.col || hovered?.row !== this.hover?.row) {
-          this.hover = hovered; this.scene.setHover(hovered);
+          this.hover = hovered; if (this.home.open) this.home.setHover(hovered); else this.scene.setHover(hovered);
         }
       }
       this.reportAnimation(now);
       if (!this.destroyed && !this.contextLost) { this.app.render(); this.renderedFrames++; }
       this.frame = 0;
-      if (walking || animating) this.requestRender();
+      if (walking || animating || homeAnimating) this.requestRender();
     });
   }
 
@@ -201,9 +249,29 @@ class PixiWorldRenderer implements WorldRenderer {
     canvas.dataset.culledTiles = String(this.scene.culledGroundCount);
     canvas.dataset.culledObjects = String(this.scene.culledObjectCount);
     canvas.dataset.exposedSides = String(this.scene.exposedSideCount);
+    canvas.dataset.location = this.home.open ? "home" : "surface";
+    canvas.dataset.homeProgress = this.home.progress.toFixed(4);
+    canvas.dataset.homePlayer = `${this.home.player.col.toFixed(4)},${this.home.player.row.toFixed(4)}`;
+    canvas.dataset.homeMoving = String(this.home.moving);
+    const airlock = this.home.airlock;
+    canvas.dataset.airlockPhase = airlock.phase;
+    canvas.dataset.airlockDirection = airlock.direction;
+    canvas.dataset.airlockPressure = airlock.pressure.toFixed(3);
+    canvas.dataset.airlockInner = airlock.innerOpen.toFixed(3);
+    canvas.dataset.airlockOuter = airlock.outerOpen.toFixed(3);
+    const airlockKey = `${airlock.direction}:${airlock.phase}`;
+    if (airlockKey !== this.reportedAirlock) {
+      this.reportedAirlock = airlockKey;
+      this.callbacks.onAirlockChange({ direction: airlock.direction, phase: airlock.phase, cycling: airlock.cycling });
+    }
+    canvas.dataset.homeReady = String(this.home.interactive);
+    canvas.dataset.homeParts = String(this.home.visiblePartCount);
+    canvas.dataset.homeFadedTiles = String(this.scene.homeFadedTileCount);
+    canvas.dataset.homeCamera = `${this.home.root.x.toFixed(3)},${this.home.root.y.toFixed(3)},${this.home.root.scale.x.toFixed(4)},${this.home.root.pivot.x},${this.home.root.pivot.y}`;
     canvas.dataset.enteringTiles = String([...this.scene.cells.values()].filter((c) => c.active && presenceAt(c.presence, now) < 1).length);
     canvas.dataset.renderedFrames = String(this.renderedFrames);
     canvas.dataset.camera = `${this.camera.x.toFixed(3)},${this.camera.y.toFixed(3)},${this.camera.zoom.toFixed(4)}`;
+    canvas.dataset.surfaceCamera = `${this.scene.root.x.toFixed(3)},${this.scene.root.y.toFixed(3)},${this.scene.root.scale.x.toFixed(4)}`;
   }
   private scheduleCompletion(target: GridPosition, remaining = STEP_MS) {
     if (this.completionTimer) clearTimeout(this.completionTimer);
@@ -228,7 +296,7 @@ class PixiWorldRenderer implements WorldRenderer {
         const delta = now - this.pausedAt;
         if (this.motion) this.motion.start += delta;
         if (this.queuedMotion) this.queuedMotion.start += delta;
-        this.scene.shiftTime(delta); this.handoff = null; this.pausedAt = null;
+        this.scene.shiftTime(delta); this.home.shiftTime(delta); this.handoff = null; this.pausedAt = null;
       }
       if (this.timedStep) this.scheduleCompletion(this.timedStep.target, this.timedStep.remaining);
       this.requestRender();
@@ -252,10 +320,13 @@ class PixiWorldRenderer implements WorldRenderer {
   }
 
   private pick(point: Point) {
+    if (this.home.open) return this.home.pick(point);
     return this.scene.pick(screenToWorld(point, this.camera));
   }
 
   private select(position: GridPosition) {
+    if (this.home.open) { this.home.walkTo(position, performance.now()); this.requestRender(); return; }
+    this.enterRequested = false;
     this.scene.setSelection(position, performance.now(), !this.reduced);
     this.callbacks.onSelect(position);
     this.requestRender();
@@ -305,7 +376,7 @@ class PixiWorldRenderer implements WorldRenderer {
     canvas.addEventListener("lostpointercapture", cancelDrag, { signal });
     canvas.addEventListener("pointerleave", () => {
       this.pointer = null; this.hover = null;
-      this.scene.setHover(null);
+      this.scene.setHover(null); this.home.setHover(null);
       this.requestRender();
     }, { signal });
     canvas.addEventListener("wheel", (event) => {
@@ -323,7 +394,14 @@ class PixiWorldRenderer implements WorldRenderer {
         a: { col: -1, row: 0 }, d: { col: 1, row: 0 }, w: { col: 0, row: -1 }, s: { col: 0, row: 1 },
       };
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      if (this.home.open) {
+        if (Object.hasOwn(directions, key)) { event.preventDefault(); this.home.move(directions[key], performance.now()); }
+        else if (key === "Escape" || key === "e" || key === "Enter") { event.preventDefault(); this.home.exit(performance.now()); }
+        else if (["+", "=", "-", "Home"].includes(key)) { event.preventDefault(); if (key === "Home") this.fit(); else this.zoomBy(key === "-" ? 1 / 1.2 : 1.2); }
+        this.requestRender(); return;
+      }
       if (Object.hasOwn(directions, key)) {
+        this.enterRequested = false;
         event.preventDefault();
         if (event.shiftKey) {
           this.stopHeld();
@@ -387,6 +465,21 @@ class PixiWorldRenderer implements WorldRenderer {
     this.scene.setGridVisible(visible); this.requestRender();
   }
 
+  enterHome() {
+    if (this.home.open || !atHomeDoor(this.snapshot.player, this.world.home)) return;
+    this.enterRequested = true; this.stopHeld();
+    if (!this.motion && !this.queuedMotion && !this.timedStep) this.beginHome(performance.now());
+    this.requestRender();
+  }
+  private beginHome(now: number) {
+    this.enterRequested = false;
+    if (!atHomeDoor(this.snapshot.player, this.world.home)) return;
+    this.drag = null; this.pointer = null; this.hover = null; this.scene.setHover(null);
+    this.home.enter(now);
+  }
+  exitHome() { this.home.exit(performance.now()); this.requestRender(); }
+  moveHome(direction: GridPosition) { this.home.move(direction, performance.now()); this.requestRender(); }
+
   zoomBy(factor: number) {
     const area = this.viewArea();
     this.camera = zoomAt(this.camera, { x: area.left + area.width / 2, y: area.top + area.height / 2 }, this.camera.zoom * factor);
@@ -394,10 +487,15 @@ class PixiWorldRenderer implements WorldRenderer {
   }
 
   fit() {
+    this.fitSurface();
+  }
+
+  private fitSurface() {
     const area = this.viewArea();
     const fitted = fitCamera(nearbyBounds(this.world, this.snapshot.player), area.width, area.height, 24);
     const framed = zoomAt(fitted, { x: area.width / 2, y: area.height / 2 }, Math.max(fitted.zoom, this.minimumZoom));
     this.camera = { ...framed, x: framed.x + area.left, y: framed.y + area.top };
+    if (this.home.open && this.homeFocus) this.camera = followCamera(this.camera, tileCenter(this.visualPlayer), this.homeFocus);
     this.applyCamera();
   }
 
@@ -455,6 +553,7 @@ class PixiWorldRenderer implements WorldRenderer {
     this.resizeObserver.disconnect();
     this.app.destroy({ removeView: true }, { children: true, context: true });
     this.lunar?.destroy();
+    this.astronautAtlas.destroy();
   }
 }
 
@@ -466,6 +565,7 @@ export async function createWorldRenderer(
   signal: AbortSignal,
 ): Promise<WorldRenderer> {
   const app = new Application<WebGLRenderer>();
+  let astronautAtlas: AstronautAtlas | undefined;
   try {
     await app.init({
       width: Math.max(1, host.clientWidth), height: Math.max(1, host.clientHeight),
@@ -473,11 +573,14 @@ export async function createWorldRenderer(
       resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
       autoStart: false, sharedTicker: false,
     });
+    const [baseTextures, atlas] = await Promise.all([loadLunarBaseTextures(), loadAstronautAtlas()]);
+    astronautAtlas = atlas;
     if (signal.aborted) throw new DOMException("World initialization cancelled.", "AbortError");
     if (app.renderer.type !== RendererType.WEBGL) throw new Error("A WebGL renderer is required.");
-    return new PixiWorldRenderer(app, host, world, initialState, callbacks);
+    return new PixiWorldRenderer(app, host, world, initialState, callbacks, baseTextures, atlas);
   } catch (error) {
     if (app.renderer) app.destroy({ removeView: true }, { children: true, context: true });
+    astronautAtlas?.destroy();
     throw error;
   }
 }

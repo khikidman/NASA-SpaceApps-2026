@@ -1,9 +1,11 @@
 import { compareEntityDepth, entitySilhouette, pointInPolygon, worldToGrid } from "./isometric";
 import type { Footprint, GridPosition, Point, WorldEntity, WorldMap, WorldTile } from "./types";
 import { inRenderRange } from "./visibility";
+import { createLunarBasePrefab } from "./base-prefab";
+
+const HOME = { col: 12, row: 12 } as const;
 
 const FACILITIES: readonly WorldEntity[] = [
-  { id: "hab-01", name: "Home base", kind: "habitat", interaction: { type: "base" }, position: { col: 12, row: 12 }, footprint: { width: 1, height: 1 }, height: 56 },
   { id: "solar-01", name: "Power stop", kind: "solar", interaction: { type: "resource" }, position: { col: 10, row: 11 }, footprint: { width: 1, height: 1 }, height: 12 },
   { id: "solar-02", name: "Shake & dust challenge", kind: "solar", interaction: { type: "task", taskId: "safety" }, position: { col: 12, row: 9 }, footprint: { width: 1, height: 1 }, height: 12 },
   { id: "solar-03", name: "Space garden challenge", kind: "lab", interaction: { type: "task", taskId: "garden" }, position: { col: 15, row: 10 }, footprint: { width: 1, height: 1 }, height: 24 },
@@ -39,9 +41,9 @@ function tileHash(seed: number, col: number, row: number): number {
 export function createOutpost(seed: number, levelId: "moon" | "mars" = "moon"): WorldMap {
   const width = 24;
   const height = 24;
-  const entities = FACILITIES.map((entity) => ({
+  const entities = [...createLunarBasePrefab(HOME), ...FACILITIES.map((entity) => ({
     ...entity, position: { ...entity.position }, footprint: { ...entity.footprint },
-  }));
+  }))];
   const tiles: WorldTile[] = [];
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
@@ -54,7 +56,7 @@ export function createOutpost(seed: number, levelId: "moon" | "mars" = "moon"): 
     }
   }
   return { id: `${levelId}-outpost-v3`, levelId, location: levelId === "moon" ? "Moon" : "Mars", seed, width, height, tiles, entities,
-    home: { col: 12, row: 12 }, spawn: { col: 12, row: 13 } };
+    home: { ...HOME }, spawn: { col: 12, row: 13 } };
 }
 
 /** Validation boundary for a future placement command; does not mutate the map. */

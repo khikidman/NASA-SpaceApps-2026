@@ -24,6 +24,8 @@ export function MissionDashboard() {
   const { game, ready, notice, error, feedback, act, restart, clearError } = useMission();
   const [panel, setPanel] = useState<Panel>(null), [dismissedResult, setDismissedResult] = useState<string | null>(null);
   const [target, setTarget] = useState<MissionTarget | null>(null), [displayNotice, setDisplayNotice] = useState("");
+  const [homeWorld, setHomeWorld] = useState<string | null>(null);
+  const worldKey = `${game.seed}-${game.missionId}`, insideHome = homeWorld === worldKey;
   const mission = MISSIONS[game.missionId], ended = game.status !== "playing";
   const world = useMemo(() => createOutpost(game.seed, game.missionId), [game.seed, game.missionId]);
   const resultKey = `${game.missionId}-${game.status}-${game.day}`, activePanel = ended && dismissedResult !== resultKey ? "today" : panel;
@@ -32,7 +34,7 @@ export function MissionDashboard() {
   const currentTarget = target?.world === game.missionId ? target : null;
   function open(next: Panel) { clearError(); setPanel(next); }
   function close() { setPanel(null); setDismissedResult(ended ? resultKey : null); clearError(); requestAnimationFrame(() => document.querySelector<HTMLCanvasElement>("canvas")?.focus({ preventScroll: true })); }
-  function freshTrip() { restart(); setTarget(null); setPanel(null); setDismissedResult(null); }
+  function freshTrip() { restart(); setTarget(null); setPanel(null); setDismissedResult(null); setHomeWorld(null); }
   function openNode(id: string) {
     const node = world.entities.find((n) => n.id === id);
     if (node?.interaction.type === "resource") { clearError(); act({ type: "collect", nodeId: id }); }
@@ -47,16 +49,16 @@ export function MissionDashboard() {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.querySelector("main")?.requestFullscreen(); }
     catch { setDisplayNotice("Full screen is unavailable in this window."); }
   }
-  return <main className="game-shell junior-game play-ui" data-world={game.missionId}>
+  return <main className="game-shell junior-game play-ui" data-world={game.missionId} data-location={insideHome ? "home" : "surface"}>
     <h1 className="sr-only">{mission.location} mission</h1>
-    {ready && <MissionWorld game={game} act={act} onOpen={openNode} feedback={feedback} target={currentTarget} />}
+    {ready && <MissionWorld game={game} act={act} onOpen={openNode} feedback={feedback} target={currentTarget} onHomeChange={(value) => { setHomeWorld(value ? worldKey : null); if (value) setTarget(null); }} />}
     <header className="minimal-header">
       <div className="minimal-supplies" role="group" aria-label="Your supplies and knowledge">{RESOURCE_KEYS.map((resource) => <ResourceMeter key={resource} resource={resource} value={game.resources[resource]} />)}</div>
       <div className="top-corner"><div className="day-badge"><GameArt name={game.missionId} size={34} /><span>{mission.location}<small>Day {game.day} / 7</small></span><div className="day-dots" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <i key={i} className={i < game.day ? "filled" : ""} />)}</div></div><nav className="utility-buttons" aria-label="More game options"><button className="icon-button" aria-label="My book" onClick={() => open("book")}><HudIcon name="journal" /></button><button className="icon-button" aria-label="Help" onClick={() => open("help")}><HudIcon name="guide" /></button></nav></div>
     </header>
     <section className="mission-strip" aria-label="Missions">
       <div className="mission-strip-top"><span className="daily-star-pips" role="progressbar" aria-label="Knowledge earned today" aria-valuemin={0} aria-valuemax={DAILY_KNOWLEDGE_GOAL} aria-valuenow={Math.min(game.dayKnowledge, DAILY_KNOWLEDGE_GOAL)}>{Array.from({ length: DAILY_KNOWLEDGE_GOAL }, (_, i) => <span key={i} className={i < game.dayKnowledge ? "filled" : ""} aria-hidden="true">✦</span>)}</span><span className={`daily-check ${completedTasks(game) ? "done" : ""}`} title="Finish one mission" aria-label={`${completedTasks(game)} missions finished today`}>✓</span><span className="work-clock" aria-label={`${game.timeLeft} work hours left`}>◷ {game.timeLeft}</span><button className={`night-button ${canEndDay(game) ? "night-ready" : ""}`} aria-label="Night plan" onClick={() => open("today")}><GameArt name="dark" size={28} /><span>Rest</span></button></div>
-      <div className="mission-buttons">{TASKS[game.missionId].map((task) => { const visual = MISSION_VISUALS[task.id], progress = game.taskProgress[task.id] ?? 0; const node = world.entities.find((n) => n.interaction.type === "task" && n.interaction.taskId === task.id)!; return <button type="button" key={task.id} className={`mission-button ${progress >= 2 ? "mission-done" : ""} ${currentTarget?.nodeId === node.id ? "mission-selected" : ""}`} disabled={ended} aria-label={`${task.title}, ${progress} of 2 steps complete`} onClick={() => selectMission(task.id)}><GameArt name={visual.art} size={42} /><span>{visual.label}</span><span className="mission-step-dots" aria-hidden="true">{[0, 1].map((i) => <i key={i} className={i < progress ? "filled" : ""} />)}</span>{progress >= 2 && <b className="mission-tick">✓</b>}</button>; })}</div>
+      {!insideHome && <div className="mission-buttons">{TASKS[game.missionId].map((task) => { const visual = MISSION_VISUALS[task.id], progress = game.taskProgress[task.id] ?? 0; const node = world.entities.find((n) => n.interaction.type === "task" && n.interaction.taskId === task.id)!; return <button type="button" key={task.id} className={`mission-button ${progress >= 2 ? "mission-done" : ""} ${currentTarget?.nodeId === node.id ? "mission-selected" : ""}`} disabled={ended} aria-label={`${task.title}, ${progress} of 2 steps complete`} onClick={() => selectMission(task.id)}><GameArt name={visual.art} size={42} /><span>{visual.label}</span><span className="mission-step-dots" aria-hidden="true">{[0, 1].map((i) => <i key={i} className={i < progress ? "filled" : ""} />)}</span>{progress >= 2 && <b className="mission-tick">✓</b>}</button>; })}</div>}
     </section>
     {feedback && <ActionToast key={feedback.id} feedback={feedback} />}
     {!activePanel && error && <button className="small-notice" onClick={() => open("help")} aria-label={error}>Need a hand? <HudIcon name="guide" size={16} /></button>}

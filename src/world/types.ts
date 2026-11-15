@@ -23,6 +23,7 @@ export interface Bounds {
 
 export type Terrain = "sand" | "rock" | "path" | "pad";
 export type FacilityKind = "habitat" | "solar" | "oxygen" | "lab" | "shield";
+export type BaseModuleKind = "hull" | "airlock" | "vent-intake" | "vent-exhaust" | "antenna" | "dome";
 
 export interface WorldTile extends GridPosition {
   terrain: Terrain;
@@ -32,6 +33,7 @@ export interface WorldTile extends GridPosition {
 export type NodeInteraction = { type: "base" } | { type: "resource" } | { type: "task"; taskId: string };
 
 export interface WorldEntity {
+  prefab?: { id: "lunar-base"; module: BaseModuleKind };
   interaction: NodeInteraction;
   id: string;
   kind: FacilityKind;

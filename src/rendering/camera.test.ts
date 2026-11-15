@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { worldBounds } from "../world/isometric";
-import { constrainCamera, fitCamera, MAX_ZOOM, MIN_ZOOM, screenToWorld, worldToScreen, zoomAt } from "./camera";
+import { constrainCamera, fitCamera, followCamera, MAX_ZOOM, MIN_ZOOM, screenToWorld, worldToScreen, zoomAt } from "./camera";
 
 describe("world camera", () => {
+  it("tracks fractional interior movement without changing the player's screen position or manual offset", () => {
+    for (const zoom of [.5, 1.3, 2.5]) {
+      let camera = { x: 730, y: -400, zoom }, previous = { x: 0, y: 600 };
+      const screen = worldToScreen(previous, camera);
+      for (const next of [{ x: .4, y: 599.8 }, { x: 24, y: 588 }, { x: 96, y: 552 }, { x: 0, y: 600 }]) {
+        camera = followCamera(camera, previous, next);
+        expect(worldToScreen(next, camera).x).toBeCloseTo(screen.x);
+        expect(worldToScreen(next, camera).y).toBeCloseTo(screen.y);
+        expect(camera.zoom).toBe(zoom); previous = next;
+      }
+    }
+  });
   it("round-trips picking coordinates after panning and zooming", () => {
     for (const zoom of [MIN_ZOOM, 0.7, 1, MAX_ZOOM]) {
       const camera = { x: 145, y: -67, zoom };

@@ -55,12 +55,17 @@ describe("player-centered render distance", () => {
     expect(pickWorldPosition(world, roof, player)).toBeNull();
   });
 
-  it("puts exactly one home base on exactly one interactive square", () => {
+  it("assembles a solid 3×3 base from individual tiles with a clear southwest door approach", () => {
     const world = createOutpost(1);
-    expect(world.entities.filter((entity) => entity.kind === "habitat")).toHaveLength(1);
-    expect(entityAt(world, world.home)).toMatchObject({ id: "hab-01", footprint: { width: 1, height: 1 } });
+    expect(world.entities.filter((entity) => entity.kind === "habitat")).toHaveLength(9);
+    expect(entityAt(world, world.home)).toMatchObject({ id: "hab-01", position: { col: 12, row: 12 }, footprint: { width: 1, height: 1 } });
+    for (let row = 10; row < 13; row++) for (let col = 11; col < 14; col++) {
+      expect(entityAt(world, { col, row })?.prefab?.id).toBe("lunar-base"); expect(walkable(world, { col, row })).toBe(false);
+      expect(findInteractionPath(world, world.spawn, { col, row })).toEqual([]);
+    }
     expect(entityAt(world, world.spawn)).toBeUndefined();
     expect(walkable(world, world.spawn)).toBe(true);
+    expect(() => interactWithFacility(world, { ...createExplorer(world), position: { col: 13, row: 11 } }, "hab-01")).toThrow("next to");
   });
 });
 

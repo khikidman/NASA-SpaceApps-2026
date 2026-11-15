@@ -1,6 +1,7 @@
 import { entityAt, tileAt } from "./map";
 import { cellKey, inRenderRange } from "./visibility";
 import type { ExplorerState, GridPosition, WorldMap } from "./types";
+import { atHomeDoor, homeDoorPosition } from "./home";
 
 export const DIRECTIONS: Readonly<Record<string, GridPosition>> = {
   north: { col: 0, row: -1 }, east: { col: 1, row: 0 },
@@ -31,7 +32,9 @@ export function findVisiblePath(world: WorldMap, start: GridPosition, target: Gr
 
 /** One bounded BFS chooses the shortest visible approach to an occupied stop. */
 export function findInteractionPath(world: WorldMap, start: GridPosition, target: GridPosition): GridPosition[] | null {
-  if (!entityAt(world, target) || !inRenderRange(target, start)) return null;
+  const entity = entityAt(world, target);
+  if (!entity || !inRenderRange(target, start)) return null;
+  if (entity.interaction.type === "base") return pathToAny(world, start, [homeDoorPosition(world.home)]);
   return pathToAny(world, start, Object.values(DIRECTIONS).map((d) => ({ col: target.col + d.col, row: target.row + d.row })));
 }
 
@@ -61,7 +64,8 @@ function pathToAny(world: WorldMap, start: GridPosition, targets: readonly GridP
 
 export function interactWithFacility(world: WorldMap, state: ExplorerState, id: string): ExplorerState {
   const facility = world.entities.find((entity) => entity.id === id);
-  if (!facility || !inRenderRange(facility.position, state.position) || !adjacent(facility.position, state.position)) {
+  if (!facility || !(facility.interaction.type === "base" ? atHomeDoor(state.position, world.home)
+    : inRenderRange(facility.position, state.position) && adjacent(facility.position, state.position))) {
     throw new Error("Stand next to the facility to interact.");
   }
   return { ...state, activeFacilityId: id,

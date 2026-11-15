@@ -50,7 +50,7 @@ export function compareEntityDepth(left: WorldEntity, right: WorldEntity): numbe
     || left.id.localeCompare(right.id);
 }
 
-/** Convex silhouette of the same extruded footprint used by the renderer. */
+/** Conservative pick silhouette over the building footprint and visual height. */
 export function entitySilhouette(entity: WorldEntity): Point[] {
   const [back, right, front, left] = footprintPolygon(entity.position, entity.footprint.width, entity.footprint.height);
   return [

@@ -5,6 +5,39 @@ import { WorldScene } from "./world-scene";
 import { SOLID_RADIUS, surfaceDrop, surfaceOpacity } from "../world/visibility";
 
 describe("retained local world", () => {
+  it("moves each prefab volume with its own tile rather than a shared door anchor", () => {
+    const world = createOutpost(1), scene = new WorldScene(world, world.spawn);
+    const parts = [...scene.cells.values()].filter((cell) => cell.entity?.prefab);
+    expect(parts).toHaveLength(9);
+    expect(new Set(parts.map((cell) => cell.object)).size).toBe(9);
+    expect(new Set(parts.map((cell) => cell.offset)).size).toBeGreaterThan(1);
+    for (const cell of parts) expect(cell.object!.y - cell.objectY).toBe(cell.offset);
+    const door = scene.cells.get("12,12")!, object = door.object;
+    scene.syncVisible({ col: 12, row: 17 }, 1000, true);
+    expect(scene.cells.has("11,10")).toBe(false);
+    expect(scene.cells.get("12,12")!.object).toBe(object);
+    expect(door.object!.y - door.objectY).toBe(door.offset);
+    scene.root.destroy({ children: true, context: true });
+  });
+  it("fades outdoor tiles inward without changing geometry and restores their baseline opacity", () => {
+    const world = createOutpost(1), scene = new WorldScene(world, world.spawn);
+    const baseline = [...scene.cells.values()].map((cell) => ({ cell, alpha: cell.ground.alpha, x: cell.ground.x, y: cell.ground.y, objectY: cell.object?.y }));
+    const outer = scene.cells.get("12,18")!, center = scene.cells.get("12,12")!;
+    scene.setHomeTransition(.4, 100, false);
+    expect(outer.ground.alpha).toBeLessThan(outer.opacity); expect(center.ground.alpha).toBe(center.opacity);
+    expect(scene.homeFadedTileCount).toBeGreaterThan(0); expect(scene.homeFadedTileCount).toBeLessThan(97);
+    for (const progress of [.7, 1, .4, 0]) {
+      scene.setHomeTransition(progress, 200, false);
+      for (const { cell, x, y, objectY } of baseline) {
+        expect(cell.ground.x).toBe(x); expect(cell.ground.y).toBe(y); expect(cell.ground.scale.x).toBe(1);
+        expect(cell.object?.y).toBe(objectY); expect(cell.ground.destroyed).toBe(false);
+        if (progress === 1) { expect(cell.ground.alpha).toBe(0); if (cell.object) expect(cell.object.alpha).toBe(0); }
+      }
+    }
+    for (const { cell, alpha } of baseline) expect(cell.ground.alpha).toBe(alpha);
+    expect(scene.cells.size).toBe(97); expect(scene.homeFadedTileCount).toBe(0);
+    scene.root.destroy({ children: true, context: true });
+  });
   it("reuses overlapping tile geometry and releases departing tiles after their animation", () => {
     const world = createOutpost(1); const scene = new WorldScene(world, world.spawn);
     const kept = scene.cells.get("12,13")!;
@@ -92,7 +125,7 @@ describe("retained local world", () => {
     scene.setPresentation({ lowPower: true, lowOxygen: false, missionEnded: false });
     expect(home.object!.alpha).toBe(home.ground.alpha);
     const roof = gridToWorld(home.tile); roof.y += 1 - home.entity!.height + home.offset;
-    expect(scene.pick(roof)).toEqual(home.entity!.position);
+    expect(scene.pick(roof)).toEqual({ col: home.tile.col, row: home.tile.row });
     const ground = scene.cells.get("12,22")!, center = tileCenter(ground.tile);
     center.y += ground.offset;
     expect(scene.pick(center)).toEqual({ col: 12, row: 22 });
