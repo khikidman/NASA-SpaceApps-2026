@@ -1,0 +1,478 @@
+{
+  "format": "asset-lab.scaled-modules/v1",
+  "contract": {
+    "tile": {
+      "width": 96,
+      "height": 48
+    },
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
+    "wallHeight": 60,
+    "clearOpening": {
+      "verticalHeight": 31.02333931777379,
+      "projectedWidth": 22,
+      "widthBasis": "Design choice; height derives from runtime registration"
+    },
+    "astronaut": {
+      "height": 25.439138240574504,
+      "doorHeightRatio": 0.82,
+      "source": "src/assets/characters/astronaut-settings.ts"
+    },
+    "frame": {
+      "width": 1024,
+      "height": 1024,
+      "logicalWidth": 256,
+      "logicalHeight": 256,
+      "anchorX": 0.5,
+      "anchorY": 0.78125,
+      "displayScale": 0.25
+    },
+    "palette": {
+      "ivory": "#eee2cb",
+      "charcoal": "#484953",
+      "amber": "#efad26",
+      "glass": "#455d7b",
+      "indicator": "#83d7df"
+    },
+    "sourceMeasurements": {
+      "airlockOpeningSourcePixels": 360,
+      "airlockSourceWidth": 557,
+      "airlockDisplayWidth": 48,
+      "interiorCurrentOpening": 45,
+      "interiorCurrentFrame": 47,
+      "interiorProposedOpening": 31.02333931777379
+    }
+  },
+  "assets": [
+    {
+      "id": "hull",
+      "title": "Hull module",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "hull.png",
+      "vector": "hull.svg",
+      "package": "hull.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "entry-hull",
+      "title": "Entry hull · open passage",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "entry-hull.png",
+      "vector": "entry-hull.svg",
+      "package": "entry-hull.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "research",
+      "title": "Research module",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "research.png",
+      "vector": "research.svg",
+      "package": "research.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "greenhouse",
+      "title": "Greenhouse module",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "greenhouse.png",
+      "vector": "greenhouse.svg",
+      "package": "greenhouse.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "utilities",
+      "title": "Utilities module",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "utilities.png",
+      "vector": "utilities.svg",
+      "package": "utilities.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "communications",
+      "title": "Communications module",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "communications.png",
+      "vector": "communications.svg",
+      "package": "communications.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "solar",
+      "title": "Solar rack",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "solar.png",
+      "vector": "solar.svg",
+      "package": "solar.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "tunnel-row",
+      "title": "Tunnel · row axis",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "tunnel-row.png",
+      "vector": "tunnel-row.svg",
+      "package": "tunnel-row.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "tunnel-col",
+      "title": "Tunnel · column axis",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "tunnel-col.png",
+      "vector": "tunnel-col.svg",
+      "package": "tunnel-col.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "airlock-closed",
+      "title": "Airlock · sealed",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "airlock-closed.png",
+      "vector": "airlock-closed.svg",
+      "package": "airlock-closed.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "airlock-outer-open",
+      "title": "Airlock · outer open",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "airlock-outer-open.png",
+      "vector": "airlock-outer-open.svg",
+      "package": "airlock-outer-open.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "airlock-pressure",
+      "title": "Airlock · pressure hold",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "airlock-pressure.png",
+      "vector": "airlock-pressure.svg",
+      "package": "airlock-pressure.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    },
+    {
+      "id": "airlock-inner-open",
+      "title": "Airlock · inner open",
+      "footprint": {
+        "width": 1,
+        "height": 1
+      },
+      "image": "airlock-inner-open.png",
+      "vector": "airlock-inner-open.svg",
+      "package": "airlock-inner-open.assetlab.json",
+      "settings": {
+        "brightness": 1,
+        "contrast": 1,
+        "saturation": 1,
+        "scale": 0.25,
+        "anchorX": 0.5,
+        "anchorY": 0.78125,
+        "frameWidth": 1024,
+        "frameHeight": 1024
+      }
+    }
+  ],
+  "layout": [
+    {
+      "id": "utility",
+      "asset": "utilities",
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": "science",
+      "asset": "research",
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": "antenna",
+      "asset": "communications",
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": "living",
+      "asset": "entry-hull",
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": "airlock",
+      "asset": "airlock-inner-open",
+      "col": 1,
+      "row": 2
+    },
+    {
+      "id": "tunnel",
+      "asset": "tunnel-col",
+      "col": 2,
+      "row": 0
+    },
+    {
+      "id": "garden",
+      "asset": "greenhouse",
+      "col": 3,
+      "row": 0
+    },
+    {
+      "id": "solar",
+      "asset": "solar",
+      "col": 3,
+      "row": 2
+    }
+  ],
+  "airlock": {
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
+    "axis": "row",
+    "floorCenter": [
+      0,
+      0
+    ],
+    "innerThreshold": [
+      24,
+      -12
+    ],
+    "outerThreshold": [
+      -24,
+      12
+    ],
+    "localGridBounds": {
+      "col": [
+        -0.5,
+        0.5
+      ],
+      "row": [
+        -0.5,
+        0.5
+      ]
+    },
+    "path": [
+      {
+        "col": 0,
+        "row": 1,
+        "label": "outside"
+      },
+      {
+        "col": 0,
+        "row": 0,
+        "label": "chamber"
+      },
+      {
+        "col": 0,
+        "row": -1,
+        "label": "inside"
+      }
+    ],
+    "drawOrder": [
+      "airlock-floor",
+      "airlock-inner-doors",
+      "airlock-inner-frame",
+      "astronaut",
+      "airlock-outer-doors",
+      "airlock-outer-frame"
+    ],
+    "leafMotion": {
+      "projectedHalfWidth": 11,
+      "left": [
+        -11,
+        -5.5
+      ],
+      "right": [
+        11,
+        5.5
+      ],
+      "clipToClearOpening": true
+    },
+    "sequence": [
+      "outer opens; inner closed",
+      "astronaut boards the full chamber tile",
+      "both doors closed; pressure hold",
+      "inner opens; outer closed",
+      "astronaut walks inside"
+    ],
+    "currentIntegrationMismatch": "Current interior door is 45 world px; exterior-derived scale is 31.0233. Adopt the shared clear height when binding these assets; no runtime code changed."
+  },
+  "baselineFiles": [
+    {
+      "path": "src/assets/characters/astronaut-settings.ts",
+      "sha256": "fa1cd16624009d7804b7e082dd022969277e8241f0a4b2430af91fbf4b6a864b"
+    },
+    {
+      "path": "src/assets/characters/astronaut-atlas.json",
+      "sha256": "b62ecaafa52d707bb4c32c112506f8577c166ab357b3d73d97a62d991e257a9f"
+    },
+    {
+      "path": "src/assets/buildings/lunar-base-modules.json",
+      "sha256": "40f7e6da8abbfc126731e0e861fb8aa31887771ed39f7c1d6b726a83a1d5a9dd"
+    },
+    {
+      "path": "src/world/base-prefab.ts",
+      "sha256": "a3f18cd4df548676801d21965f231361d9ac78b756566be40177d204e0fea0e4"
+    },
+    {
+      "path": "src/world/home.ts",
+      "sha256": "ae6b0d1cbbe925cd6892a02b8958bf01147835914e3b8e71e18e2306f401fc6f"
+    },
+    {
+      "path": "src/world/airlock.ts",
+      "sha256": "850f4918bbda90038618b74c8dffd0cce374c122bc0cdd301d75479ec35ff099"
+    },
+    {
+      "path": "src/rendering/airlock-visual.ts",
+      "sha256": "305b47208d9acde390dbe5cc423ca80b8b795c7fc866a83fcdb23458b2c6951d"
+    }
+  ],
+  "note": "New lab-only structural modules. Main repository runtime assets are read-only inputs. No gameplay integration applied."
+}

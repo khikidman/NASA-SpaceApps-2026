@@ -1,0 +1,105 @@
+{
+  "format": "asset-lab.airlock-visibility-states/v1",
+  "id": "airlock-tunnel-v1",
+  "footprint": {
+    "width": 1,
+    "height": 1
+  },
+  "tile": {
+    "width": 96,
+    "height": 48
+  },
+  "shellHeight": 42.02333931777379,
+  "clearDoor": {
+    "height": 31.02333931777379,
+    "projectedWidth": 22
+  },
+  "astronautHeight": 25.439138240574504,
+  "settings": {
+    "brightness": 1,
+    "contrast": 1,
+    "saturation": 1,
+    "scale": 0.25,
+    "anchorX": 0.5,
+    "anchorY": 0.78125,
+    "frameWidth": 1024,
+    "frameHeight": 1024
+  },
+  "thresholds": {
+    "inner": [
+      24,
+      -12
+    ],
+    "outer": [
+      -24,
+      12
+    ]
+  },
+  "axis": "row",
+  "states": [
+    {
+      "id": "exterior-solid",
+      "title": "1 · Exterior / solid",
+      "floor": 1,
+      "far": 1,
+      "near": 1,
+      "ceiling": 1,
+      "innerFrame": 1,
+      "outerFrame": 1,
+      "innerDoor": 1,
+      "outerDoor": 1,
+      "innerOpen": 0,
+      "outerOpen": 0,
+      "light": "#87cdd4"
+    },
+    {
+      "id": "interior-phase-1",
+      "title": "2 · Inside / phase 1 of 2",
+      "floor": 1,
+      "far": 1,
+      "near": 0.06,
+      "ceiling": 0.06,
+      "innerFrame": 1,
+      "outerFrame": 0.16,
+      "innerDoor": 1,
+      "outerDoor": 0.06,
+      "innerOpen": 0,
+      "outerOpen": 0,
+      "light": "#edbe63"
+    },
+    {
+      "id": "interior-phase-2",
+      "title": "3 · Inside / phase 2 of 2",
+      "floor": 0.25,
+      "far": 0.035,
+      "near": 0,
+      "ceiling": 0,
+      "innerFrame": 0.08,
+      "outerFrame": 0.06,
+      "innerDoor": 0,
+      "outerDoor": 0,
+      "innerOpen": 1,
+      "outerOpen": 0,
+      "light": "#88d5af"
+    }
+  ],
+  "packages": [
+    "exterior-solid.assetlab.json",
+    "interior-phase-1.assetlab.json",
+    "interior-phase-2.assetlab.json"
+  ],
+  "visibilityOnly": "Transparency changes rendering only. The enclosure remains physically sealed and collision occupancy remains 1x1. In phase 2 the outer door is still closed but visually hidden; inner door is open.",
+  "layerOrder": [
+    "floor",
+    "far-enclosure",
+    "inner-door",
+    "inner-frame",
+    "astronaut / base-interior",
+    "near-enclosure",
+    "outer-door",
+    "outer-frame",
+    "ceiling"
+  ],
+  "transition": "Crossfade part opacities in the layered SVG or renderer; do not crossfade the entire actor/interior with the shell. Source geometry and anchor are invariant.",
+  "integration": "Lab handoff only; no main code modifications. Existing interior door height 45 must be reconciled with the exterior-derived 31.0233 when binding."
+}

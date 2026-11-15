@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256"><defs>
+ <linearGradient id="left" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0e3ce"/><stop offset="1" stop-color="#b9aa96"/></linearGradient>
+ <linearGradient id="right" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8edd9"/><stop offset="1" stop-color="#cdbfa9"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffd46b"/><stop offset=".45" stop-color="#f3b325"/><stop offset="1" stop-color="#bf7d12"/></linearGradient>
+ <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#91b7ce"/><stop offset=".4" stop-color="#566f8b"/><stop offset="1" stop-color="#2e4058"/></linearGradient>
+ <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#626470"/><stop offset="1" stop-color="#353640"/></linearGradient>
+ <clipPath id="roof"><polygon points="0,-84 48,-60 0,-36 -48,-60"/></clipPath>
+</defs><g transform="translate(128 200)"><g transform="matrix(1 .5 0 1 24 -12)"><defs><clipPath id="ap-24--12"><rect x="-11" y="-31.02333931777379" width="22" height="31.02333931777379"/></clipPath></defs><path d="M-17 1 V-35.02333931777379 Q-17 -39.02333931777379 -13 -39.02333931777379 H13 Q17 -39.02333931777379 17 -35.02333931777379 V1 H11 V-31.02333931777379 H-11 V1Z" fill="url(#right)" stroke="#998f7d" stroke-width=".5"/><path d="M-13 0 V-32.02333931777379 Q-13 -35.02333931777379 -10 -35.02333931777379 H10 Q13 -35.02333931777379 13 -32.02333931777379 V0" fill="none" stroke="url(#gold)" stroke-width="3"/><rect x="-6" y="-38.02333931777379" width="12" height="2" rx="1" fill="#8bd3d9"/><path d="M-14 1 H14" stroke="#555760" stroke-width="2"/></g></g></svg>
