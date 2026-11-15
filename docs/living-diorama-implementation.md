@@ -17,7 +17,7 @@ optional. No real instrument readings or water-safety simulation are claimed.
 
 Supplies use visible names and amount/capacity, plus a separate token bank.
 Forecast only resources changed by the selected action: current → after, actual
-capped gain, and separate signed use/get values. Research tokens are spendable;
+capped gain, and separate signed use/get values. Research points are spendable;
 research progress is permanent. No duplicated permanent HUD inside the activity.
 
 Graphical interactions keep keyboard activation, large touch targets, clear
@@ -39,7 +39,7 @@ All five Day 1 experiments now use the shared illustrated stage and independent
 interactive vector equipment. Fine controls, keyboard activation, resettable free
 practice and the optional cutaway remain available. Learning statements lead the
 layout; expanded notes retain source links and model limitations. Global supply
-bars have names/capacities, with spendable Research tokens distinguished from
+bars have names/capacities, with spendable Research points distinguished from
 permanent Research progress. The forecast uses the engine's actual capped result.
 
 Focused verification on 2026-11-15: TypeScript passed; 11 workshop/save tests

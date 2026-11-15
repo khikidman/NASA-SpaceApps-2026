@@ -5,7 +5,7 @@ import type { TutorialPlan } from "@/game/types";
 import { workshopTerms } from "@/data/day-one-workshop";
 import { WorkshopIcon, type WorkshopSymbol } from "@/components/workshop-art";
 
-const NAMES: Record<Resource,string>={oxygen:"Air",water:"Water",power:"Power",energy:"Energy",shielding:"Shield",science:"Research tokens"};
+const NAMES: Record<Resource,string>={oxygen:"Air",water:"Water",power:"Power",energy:"Energy",shielding:"Shield",science:"Research points"};
 const ICONS:Record<Resource,WorkshopSymbol>={oxygen:"bucket",water:"drop",power:"battery",energy:"readiness",shielding:"filter",science:"token"};
 const number=(value:number)=>new Intl.NumberFormat("en-US",{maximumFractionDigits:2}).format(value);
 export function previewDiorama(game:GameState,task:TutorialTask,plan:TutorialPlan){

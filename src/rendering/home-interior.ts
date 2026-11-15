@@ -103,7 +103,7 @@ export class HomeInterior {
         graphic.roundRect(-20,-6,40,6,2).fill(0x697983);
       }
       graphic.circle(0,-36,4).fill(station.color);
-      const label = new Text({ text: station.label, style: { fontFamily: "Arial", fontSize: 10, fill: 0xe3ece3 } });
+      const label = new Text({ text: station.label, style: { fontFamily: "Arial", fontSize: 10, fill: 0x000000 } });
       label.anchor.set(.5,1); label.position.set(0,-43);
       container.addChild(graphic,label); equipment.addChild(container);
       this.parts.push({ container, center, position: station.position, station: station.id });

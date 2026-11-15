@@ -32,6 +32,7 @@
 .diorama-prop[role=button],.core-picker { cursor: pointer; touch-action: manipulation; }
 .diorama-prop[aria-disabled=true] { cursor: default; }
 .diorama-object-label { font-family: var(--font-geist-sans, Arial), sans-serif; font-size: var(--label-size); font-weight: 600; fill: #f3eedb; paint-order: stroke fill; stroke: #152535; stroke-width: 4px; stroke-linejoin: round; }
+.diorama-side-label { font-size: 18px; }
 .prop-halo { transition: opacity .2s, stroke-width .2s; }
 .diorama-prop:hover .prop-halo,.diorama-prop:focus-visible .prop-halo { opacity: 1; stroke: #fff1bc; stroke-width: 4px; }
 .diorama-prop:focus-visible,.core-picker:focus-visible { outline: 3px solid #f8d991; outline-offset: 5px; }
